@@ -1,0 +1,36 @@
+# Python 标准模板
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+*.spec
+wheels/
+pip-wheel-metadata/
+
+# Environments
+.env
+.venv
+env/
+venv/
+
+# Private / local data
+_private/
+
+# Logs / caches
+*.log
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
