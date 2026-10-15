@@ -156,8 +156,10 @@ def _build_sample(
         # 企业备案期限是**外部监管义务**：合同不会载明营业执照领取日 → 企业主体判 unknown
         # （"没看到"而非"没问题"）；自然人主体原文写了适用限制 → skipped。
         expect["BJ-ENTERPRISE-FILING-30D"] = "unknown" if party == "enterprise" else "skipped"
-        # 配套办法（京建法〔2024〕8 号）第九条：押金支付/退还条款须载明（本模板恒有）→ compliant
-        expect["BJ-ESCROW-DEPOSIT-TERMS"] = "compliant"
+        # 配套办法（京建法〔2024〕8 号）第九条：押金支付/退还条款须载明。
+        # 该办法第二条自带主体限制（"承租他人住房从事转租业务的住房租赁企业"），
+        # 故自然人主体判 skipped——拿不适用于他的办法判 noncompliant 是冤枉用户。
+        expect["BJ-ESCROW-DEPOSIT-TERMS"] = "compliant" if party == "enterprise" else "skipped"
         also["BJ-RENT-INTERVENTION"] = "reference"
         also["BJ-ESCROW-RENT-SUPERVISION"] = "reference"
     else:

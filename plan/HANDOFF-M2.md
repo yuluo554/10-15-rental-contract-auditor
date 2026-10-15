@@ -15,7 +15,7 @@
 | 全国层 4 条 | ✅ | `data/rules/ruleset-cn.json`（`23a667bdd69ba94a`） |
 | 配套办法来源被真实引用 | ✅ | 京包 2 条规则挂 `SRC-BJ-DEPOSIT-ESCROW`（第九条 / 第十三条） |
 | 合成样例 10 份（含 2 份保租房） | ✅ | `data/samples/samples.json`（`58ab1ae13111efef`）+ `demo-contract-bj.txt` |
-| 测试全绿 | ✅ | **148 项**，双解释器（3.8.8 / 3.12.10） |
+| 测试全绿 | ✅ | **149 项**，双解释器（3.8.8 / 3.12.10） |
 | 生成器冻结 | ✅ | `gen_rulesets.py --check` / `gen_samples.py --check` / `fetch_sources.py --check` 三者均 exit 0 |
 | 守门 | ✅ | `check_literals.py`（+`--selftest`）/ `audit_desensitize.py selftest|tracked` 均 exit 0（HARD 0） |
 | 基准三套件 | ✅ | `BENCH_OK`（B1 90/90、B2 17/17 误报 0、B3 14/14） |
@@ -25,7 +25,7 @@
 
 | 通路 | 命令 | 结果 |
 |---|---|---|
-| 全量测试 ×2 解释器 | `py -3.12 -m pytest -q` / `py -3.8 -m pytest -q` | **148 项全绿**，exit 0 |
+| 全量测试 ×2 解释器 | `py -3.12 -m pytest -q` / `py -3.8 -m pytest -q` | **149 项全绿**，exit 0 |
 | 快照冻结 | `tools/fetch_sources.py --check` | `SOURCES_FROZEN_OK` |
 | 规则包冻结 | `tools/gen_rulesets.py --check` | `RULESETS_FROZEN_OK` |
 | 样例冻结 | `tools/gen_samples.py --check` | `SAMPLES_FROZEN_OK` |
@@ -54,7 +54,7 @@
 | 北京 | `BJ-CONTRACT-ELEMENT-DEPOSIT` | 14 | check | 定性 | M0 |
 | 北京 | `BJ-RENT-INTERVENTION` | 60 | quota | — | M0 |
 | 北京 | `BJ-ENTERPRISE-FILING-30D` | **27** | calc | 30 日 | **M1** |
-| 北京 | `BJ-ESCROW-DEPOSIT-TERMS` | **9**（配套办法） | check | 定性 | **M1** |
+| 北京 | `BJ-ESCROW-DEPOSIT-TERMS` | **9**（配套办法） | check | 定性（主体限企业） | **M1** |
 | 北京 | `BJ-ESCROW-RENT-SUPERVISION` | **13**（配套办法） | quota | 3 月 | **M1** |
 | 上海 | `SH-FILING-30D` | 17 | calc | 30 日 | M0 |
 | 上海 | `SH-RENT-DEPOSIT-ESCROW` | 29 | calc | 1 月 | M0 |
@@ -66,7 +66,7 @@
 
 ---
 
-## 2. M1 修掉的两个真缺陷（都加了回归）
+## 2. M1 修掉的真缺陷（均已加回归）
 
 ### 2.1 条号推导被正文交叉引用劫持（严重）
 
@@ -103,6 +103,15 @@
   规则包可被手工替换、也可由第三方扩展包提供。现于 `effective_ruleset()` 加**锚点门**
   （`clause`/`quote`/`source_id` 缺一即拦下并进"未启用清单"）。
   回归：`test_rule_missing_anchor_is_gated_out`（参数化三字段）。
+- **配套办法规则漏了主体限制（假 noncompliant，冤枉用户）**：`BJ-ESCROW-DEPOSIT-TERMS`
+  起初标 `applies_if.party = ["any"]`，但**配套办法第二条自带主体限制**——"本市范围内
+  承租他人住房从事转租业务的**住房租赁企业**，向承租人收取的押金、租金的托管、监管及
+  监督管理，适用本办法"。个人房东合同因此被判 `noncompliant`——拿不适用于他的监管办法
+  指责他。**原有样例集掩盖了这一点**：样例正文恰好同时含"押金"与"退还"两个别名，
+  恒判 compliant，B2 照常全绿。现改为 `party: ["enterprise"]`（自然人 → skipped）。
+  回归：`test_escrow_rules_skipped_for_individual_landlord`（用只含押金、不含退还表述的
+  个人合同，已做过变异验证：改回 `any` 该测试即红）。
+  **教训**：新增规则时必须回读该来源的**适用范围条**（第二条/第三条），不能只看被引条款。
 
 ### 2.4 HANDOFF-M1 §2 的两个"复核项"——M1 已闭环（结论已锁进测试）
 
@@ -164,7 +173,7 @@ M0 已把解析层的**骨架**建好（`parser/clauses.py` 切分 + `parser/ext
    这是最危险的一种（看着成功、实则错位）。
 
 **每改一处解析层的固定动作**：
-1. `py -3.12 -X utf8 -m pytest -q`（**148 项必须仍全绿**；双解释器各跑一遍）
+1. `py -3.12 -X utf8 -m pytest -q`（**149 项必须仍全绿**；双解释器各跑一遍）
 2. `py -3.12 -X utf8 -m rca.cli bench`（三套件必须仍达标；B1 分母会随字段增减变化）
 3. **若改了抽取字段或样例正文** → 须同步 `tools/gen_samples.py` 的 `expect` 推导并重跑生成器
    （`gen_samples.py --check` → `SAMPLES_FROZEN_OK`）
@@ -195,6 +204,7 @@ M0 已把解析层的**骨架**建好（`parser/clauses.py` 切分 + `parser/ext
 | **K15** | **数值规则的 `op` 含下限类（`>=`/`>`），措辞按方向分派** | `engine/checker.py` `_limit_words()` | 统一写"上限"会把下限义务说反（§2.3） |
 | **K16** | **未观测时仍挂 `limit`**（`unknown` 不等于规则无口径） | `engine/checker.py` `_check_numeric()` | 去掉则报告显示 `<= —`，读者误读为无口径 |
 | **K17** | **锚点门在加载侧二次拦截**：`clause`/`quote`/`source_id` 缺一即不生效（题面模块②硬约束） | `engine/ruleset.py` `effective_ruleset()` | 去掉则"缺锚点的规则不得被引擎加载生效"只剩生成器单点保障；规则包被手工替换或第三方扩展包提供时会被放行（M1 实测：原实现只查 status，缺锚点仍进判定路径） |
+| **K18** | **`applies_if.party` 必须回读来源的适用范围条**（不能只看被引条款） | 规则包各条 + `docs/技术报告.md` | 配套办法第二条限定"住房租赁企业"，误标 `any` 会让个人房东被判 noncompliant（M1 实测，且原样例集掩盖了它） |
 
 ---
 
@@ -208,7 +218,7 @@ M0 已把解析层的**骨架**建好（`parser/clauses.py` 切分 + `parser/ext
   生成器一律 `write_bytes`。
 - **本机双解释器都可用**：`py -0` 列出 3.8.8-64 与 3.12-64，两者都装了 pytest + PySide6 + rca（editable）。
 - **`py -3.12 -m pip install -e .` 会写 `src/rca.egg-info/`**：已被 .gitignore 覆盖。
-- **基准/测试跑得快**（bench 0.03s、148 项测试约 4s）：每改一处都该跑全量。
+- **基准/测试跑得快**（bench 0.03s、149 项测试约 4s）：每改一处都该跑全量。
 - **`rca report` 在演示样例上退出码是 1**（检出不符合，既定语义）——用 `&&` 串联命令会在此断链，
   脚本里请用 `;` 或显式判断。
 
@@ -239,7 +249,7 @@ M0 已把解析层的**骨架**建好（`parser/clauses.py` 切分 + `parser/ext
 
 ```bash
 # 验证（M2 每改一处都跑）
-py -3.12 -X utf8 -m pytest -q                         # 148 项（双解释器各跑一遍）
+py -3.12 -X utf8 -m pytest -q                         # 149 项（双解释器各跑一遍）
 py -3.12 -X utf8 -m rca.cli bench                     # 三套件 → BENCH_OK
 py -3.12 -X utf8 tools/check_literals.py --selftest   # 门禁自检
 py -3.12 -X utf8 tools/audit_desensitize.py tracked   # 脱敏（HARD 0）
@@ -284,3 +294,4 @@ py -3.12 -X utf8 -m rca.cli report --input data/samples/demo-contract-bj.txt --c
 | **R7** | **样例增至 10 份后，B1 分母 90、B2 分母 17、B3 分母 14** | 后续改动须同步 README 的评测表与 `tests/` 里任何写死计数的断言 |
 | **R8** | **配套办法来源目前只被 2 条规则引用** | 属"够用"而非"穷尽"；办法里还有押金退还 3 工作日、账户公示等可抽条目，M2/M3 视需要扩 |
 | **R9** | 全国层只有 1 条数值规则（705） | 707/704/721 本质是定性/补充规则，无阈值——**不是遗漏**，`test_m1_coverage_floors` 已按此口径写死 |
+| **R10** | **配套办法的主体限定取"enterprise"而非"转租业务企业"** | 原文限定的是"承租他人住房从事**转租业务**的住房租赁企业"；本项目主体识别只分 enterprise/individual（不判是否转租），故 escrow 两条对**所有**企业主体生效，比原文宽一档。属**已知保守偏差**：宁可对企业多提示，不可对个人误判（个人已正确 skipped）。若 M2/M3 引入"是否转租"维度，须回来收紧 |

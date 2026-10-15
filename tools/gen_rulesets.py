@@ -316,6 +316,11 @@ SPECS = {
             {
                 # 配套办法（京建法〔2024〕8 号）第九条：押金支付与退还的**合同内容**义务。
                 # 与第十四条（条例）的押金要素检查分属两份来源，故并存不重复。
+                #
+                # applies_if 取 enterprise：**配套办法第二条自带适用主体限制**——
+                # "本市范围内承租他人住房从事转租业务的住房租赁企业，向承租人收取的押金、
+                # 租金的托管、监管及监督管理，适用本办法"。不限定主体会把个人房东也判进去
+                # （M1 实测：个人合同上误判成 noncompliant，等于拿不适用他的办法冤枉他）。
                 "rule_id": "BJ-ESCROW-DEPOSIT-TERMS",
                 "title": "押金应按合同约定的支付时间、金额存入托管账户并按约定时间方式退还",
                 "check_type": "element_completeness",
@@ -324,7 +329,7 @@ SPECS = {
                 "op": None,
                 "value": None,
                 "unit": None,
-                "applies_if": {"party": ["any"]},
+                "applies_if": {"party": ["enterprise"]},
                 "effect": "standing_obligation",
                 "severity": "medium",
                 "source_id": ESCROW,

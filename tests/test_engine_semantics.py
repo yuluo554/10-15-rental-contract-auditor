@@ -227,6 +227,35 @@ def test_escrow_source_rules_present(bj_enterprise, data_dir):
     assert trig["BJ-ESCROW-RENT-SUPERVISION"].source_id == "SRC-BJ-DEPOSIT-ESCROW"
 
 
+def test_escrow_rules_skipped_for_individual_landlord(individual, data_dir):
+    """配套办法第二条自带主体限制（"承租他人住房从事转租业务的住房租赁企业"）。
+
+    实测缺陷：`BJ-ESCROW-DEPOSIT-TERMS` 起初标 `party: ["any"]`，个人房东合同上
+    被判 `noncompliant`——拿**不适用于他**的监管办法去指责他。原样例集掩盖了这一点
+    （样例正文恰好同时含"押金"与"退还"两个别名，恒判 compliant）。
+    本测试用只含押金、不含退还表述的个人合同锁死"主体不适用 → skipped"。
+    """
+    text = """北京市住房租赁合同
+
+出租人（甲方）：个人出租（王五）
+承租人（乙方）：赵六
+联系电话：19900000003
+
+第一条 甲方将位于北京市西城区的住房出租给乙方居住使用，建筑面积 55 平方米。
+第二条 租赁期限为 1 年。
+第三条 月租金为人民币 4500 元，乙方按月支付。
+第四条 乙方应向甲方支付押金 2 个月租金。
+第五条 甲方应自合同订立之日起 30 日内办理登记备案。
+第六条 房屋及其附属设施的维修责任由甲方承担。
+"""
+    result = compute_result(text, "北京", data_dir=data_dir)
+    f = _by_id(result)["BJ-ESCROW-DEPOSIT-TERMS"]
+    assert f.status == STATUS_SKIPPED, (
+        "个人房东不适用配套办法，必须判 skipped（拿不适用他的办法判 noncompliant 是冤枉用户）"
+    )
+    assert "主体" in f.reason
+
+
 def test_rent_pay_period_missing_is_unknown_not_noncompliant(data_dir):
     """M1 复核结论（HANDOFF-M1 §2.3）：721 条"未约定支付期限"保持 unknown 定性。
 
