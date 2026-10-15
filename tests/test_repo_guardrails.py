@@ -152,6 +152,32 @@ def test_desensitize_tokens_are_runtime_computed():
     assert "2824098035" not in src
 
 
+def test_desensitize_no_git_fallback_prunes_venv(tmp_path):
+    """无 git 兜底必须剪掉 venv（按特征，不按名字）。
+
+    实测事故：`git archive` 导出的树没有 `.git`，扫描器退回文件系统遍历后
+    扫到就地建的 `.venv/Lib/site-packages/**`，第三方包自带邮箱成片误报
+    （48 项假 HARD）。本测试锁死"剪掉虚拟环境目录"这条行为。
+    """
+    from tools_support import load_tool
+
+    mod = load_tool("audit_desensitize")
+
+    venv = tmp_path / "some-env"  # 故意不叫 .venv：按特征判定，不按名字
+    (venv / "Scripts").mkdir(parents=True)
+    (venv / "pyvenv.cfg").write_text("home = x\n", encoding="utf-8")
+    (venv / "Scripts" / "activate").write_text("# activate\n", encoding="utf-8")
+    assert mod._is_virtualenv(venv), "含 pyvenv.cfg 的目录必须被识别为虚拟环境"
+
+    normal = tmp_path / "src"
+    normal.mkdir()
+    assert not mod._is_virtualenv(normal)
+
+    pruned = mod._prune_dirs(tmp_path)
+    assert venv.resolve() in pruned, "虚拟环境目录必须进剪枝集合"
+
+
+
 # --------------------------------------------------------------------------
 # 分层纪律：引擎/报告不得 import GUI
 # --------------------------------------------------------------------------

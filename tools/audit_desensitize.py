@@ -246,23 +246,67 @@ def scan_text(text: str, location: str, tokens: Dict[str, str]) -> List[Hit]:
     return hits
 
 
+def _is_virtualenv(path: Path) -> bool:
+    """按**特征**判定虚拟环境目录（不按名字）。
+
+    `git archive` 导出的树没有 `.git`，扫描器退回文件系统遍历时会扫到
+    就地建的 `.venv/Lib/site-packages/**`——第三方包自带的邮箱/路径成片误报
+    （实测 48 项假 HARD）。判别特征 = 目录内有 `pyvenv.cfg` 或 `Scripts/activate`。
+    """
+    if not path.is_dir():
+        return False
+    return (path / "pyvenv.cfg").is_file() or (path / "Scripts" / "activate").is_file()
+
+
+def _prune_dirs(root: Path) -> set:
+    """遍历时剪掉的目录（按特征而非名字）。"""
+    pruned = set()
+    try:
+        children = list(root.iterdir())
+    except OSError:
+        return pruned
+    for child in children:
+        if not child.is_dir():
+            continue
+        if child.name in (
+            ".git",
+            "__pycache__",
+            ".pytest_cache",
+            ".mypy_cache",
+            ".ruff_cache",
+        ):
+            pruned.add(child.resolve())
+            continue
+        if _is_virtualenv(child):
+            pruned.add(child.resolve())
+    return pruned
+
+
 def _iter_tracked_files() -> List[Path]:
     rc, out = git(["-c", "core.quotepath=false", "ls-files"])
-    if rc != 0:
-        # 无 git 兜底：退回文件系统遍历
-        return [
-            p
-            for p in ROOT.rglob("*")
-            if p.is_file() and ".git" not in p.parts and "__pycache__" not in p.parts
-        ]
+    if rc == 0:
+        files = []
+        for rel in out.splitlines():
+            rel = rel.strip()
+            if not rel:
+                continue
+            p = ROOT / rel
+            if p.is_file():
+                files.append(p)
+        return files
+
+    # 无 git 兜底（如 `git archive` 导出的树）：文件系统遍历，
+    # 但必须剪掉 venv 与缓存目录，否则 site-packages 会成片误报。
+    pruned = _prune_dirs(ROOT)
     files = []
-    for rel in out.splitlines():
-        rel = rel.strip()
-        if not rel:
+    for p in sorted(ROOT.rglob("*")):
+        if not p.is_file():
             continue
-        p = ROOT / rel
-        if p.is_file():
-            files.append(p)
+        if any(parent.resolve() in pruned for parent in p.parents):
+            continue
+        if _is_virtualenv(p.parent):
+            continue
+        files.append(p)
     return files
 
 
