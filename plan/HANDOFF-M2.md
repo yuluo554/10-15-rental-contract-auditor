@@ -15,7 +15,7 @@
 | 全国层 4 条 | ✅ | `data/rules/ruleset-cn.json`（`23a667bdd69ba94a`） |
 | 配套办法来源被真实引用 | ✅ | 京包 2 条规则挂 `SRC-BJ-DEPOSIT-ESCROW`（第九条 / 第十三条） |
 | 合成样例 10 份（含 2 份保租房） | ✅ | `data/samples/samples.json`（`58ab1ae13111efef`）+ `demo-contract-bj.txt` |
-| 测试全绿 | ✅ | **145 项**，双解释器（3.8.8 / 3.12.10） |
+| 测试全绿 | ✅ | **148 项**，双解释器（3.8.8 / 3.12.10） |
 | 生成器冻结 | ✅ | `gen_rulesets.py --check` / `gen_samples.py --check` / `fetch_sources.py --check` 三者均 exit 0 |
 | 守门 | ✅ | `check_literals.py`（+`--selftest`）/ `audit_desensitize.py selftest|tracked` 均 exit 0（HARD 0） |
 | 基准三套件 | ✅ | `BENCH_OK`（B1 90/90、B2 17/17 误报 0、B3 14/14） |
@@ -25,7 +25,7 @@
 
 | 通路 | 命令 | 结果 |
 |---|---|---|
-| 全量测试 ×2 解释器 | `py -3.12 -m pytest -q` / `py -3.8 -m pytest -q` | **145 项全绿**，exit 0 |
+| 全量测试 ×2 解释器 | `py -3.12 -m pytest -q` / `py -3.8 -m pytest -q` | **148 项全绿**，exit 0 |
 | 快照冻结 | `tools/fetch_sources.py --check` | `SOURCES_FROZEN_OK` |
 | 规则包冻结 | `tools/gen_rulesets.py --check` | `RULESETS_FROZEN_OK` |
 | 样例冻结 | `tools/gen_samples.py --check` | `SAMPLES_FROZEN_OK` |
@@ -97,6 +97,12 @@
   （下限类写"低于规则下限"）。回归：`test_lower_bound_rule_reason_uses_lower_bound_wording`。
 - **未观测时丢掉限值**：合同没写某要素时，报告"规则限值"列显示 `<= —`，读者会误以为
   该条没有数值口径。现照挂 `limit`（`<= 30`）。回归：`test_unobserved_numeric_rule_still_reports_its_limit`。
+- **缺锚点规则会被引擎放行（题面硬约束未在加载侧落实）**：题面模块②要求"缺锚点的规则
+  不得被引擎加载生效"，但原门控**只查 `status`**——一条 `status=verified` 却缺 `quote`/`clause`
+  的规则照样进判定路径（实测确认）。生成器对出厂规则有逐字断言，但门控不能只依赖上游：
+  规则包可被手工替换、也可由第三方扩展包提供。现于 `effective_ruleset()` 加**锚点门**
+  （`clause`/`quote`/`source_id` 缺一即拦下并进"未启用清单"）。
+  回归：`test_rule_missing_anchor_is_gated_out`（参数化三字段）。
 
 ### 2.4 HANDOFF-M1 §2 的两个"复核项"——M1 已闭环（结论已锁进测试）
 
@@ -158,7 +164,7 @@ M0 已把解析层的**骨架**建好（`parser/clauses.py` 切分 + `parser/ext
    这是最危险的一种（看着成功、实则错位）。
 
 **每改一处解析层的固定动作**：
-1. `py -3.12 -X utf8 -m pytest -q`（**145 项必须仍全绿**；双解释器各跑一遍）
+1. `py -3.12 -X utf8 -m pytest -q`（**148 项必须仍全绿**；双解释器各跑一遍）
 2. `py -3.12 -X utf8 -m rca.cli bench`（三套件必须仍达标；B1 分母会随字段增减变化）
 3. **若改了抽取字段或样例正文** → 须同步 `tools/gen_samples.py` 的 `expect` 推导并重跑生成器
    （`gen_samples.py --check` → `SAMPLES_FROZEN_OK`）
@@ -188,6 +194,7 @@ M0 已把解析层的**骨架**建好（`parser/clauses.py` 切分 + `parser/ext
 | **K14** | **`applies_if` 支持 `lease_kind` 维度**（`affordable`/`ordinary`） | `engine/checker.py` `_applicability()` + 规则包 | 去掉则保租房专属规则会对普通租赁住房误判（应 skipped） |
 | **K15** | **数值规则的 `op` 含下限类（`>=`/`>`），措辞按方向分派** | `engine/checker.py` `_limit_words()` | 统一写"上限"会把下限义务说反（§2.3） |
 | **K16** | **未观测时仍挂 `limit`**（`unknown` 不等于规则无口径） | `engine/checker.py` `_check_numeric()` | 去掉则报告显示 `<= —`，读者误读为无口径 |
+| **K17** | **锚点门在加载侧二次拦截**：`clause`/`quote`/`source_id` 缺一即不生效（题面模块②硬约束） | `engine/ruleset.py` `effective_ruleset()` | 去掉则"缺锚点的规则不得被引擎加载生效"只剩生成器单点保障；规则包被手工替换或第三方扩展包提供时会被放行（M1 实测：原实现只查 status，缺锚点仍进判定路径） |
 
 ---
 
@@ -201,7 +208,7 @@ M0 已把解析层的**骨架**建好（`parser/clauses.py` 切分 + `parser/ext
   生成器一律 `write_bytes`。
 - **本机双解释器都可用**：`py -0` 列出 3.8.8-64 与 3.12-64，两者都装了 pytest + PySide6 + rca（editable）。
 - **`py -3.12 -m pip install -e .` 会写 `src/rca.egg-info/`**：已被 .gitignore 覆盖。
-- **基准/测试跑得快**（bench 0.03s、145 项测试约 4s）：每改一处都该跑全量。
+- **基准/测试跑得快**（bench 0.03s、148 项测试约 4s）：每改一处都该跑全量。
 - **`rca report` 在演示样例上退出码是 1**（检出不符合，既定语义）——用 `&&` 串联命令会在此断链，
   脚本里请用 `;` 或显式判断。
 
@@ -232,7 +239,7 @@ M0 已把解析层的**骨架**建好（`parser/clauses.py` 切分 + `parser/ext
 
 ```bash
 # 验证（M2 每改一处都跑）
-py -3.12 -X utf8 -m pytest -q                         # 145 项（双解释器各跑一遍）
+py -3.12 -X utf8 -m pytest -q                         # 148 项（双解释器各跑一遍）
 py -3.12 -X utf8 -m rca.cli bench                     # 三套件 → BENCH_OK
 py -3.12 -X utf8 tools/check_literals.py --selftest   # 门禁自检
 py -3.12 -X utf8 tools/audit_desensitize.py tracked   # 脱敏（HARD 0）

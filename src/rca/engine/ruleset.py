@@ -210,6 +210,30 @@ def effective_ruleset(
                     }
                 )
             continue
+        # 锚点门（题面模块②硬约束）：**缺锚点的规则不得被引擎加载生效**。
+        # 锚点 = 条款号 + 法条原文逐字引用；两者缺一，判定结论就无从核证——
+        # 报告会给出一条"看起来有依据"的判定，读者却找不到原文核对（比不判更危险）。
+        # 生成器已对出厂规则做逐字断言，但门控不能只依赖上游：规则包可被手工替换、
+        # 也可由第三方扩展包提供，引擎必须在**加载侧**再拦一次。
+        missing = []
+        if not r.clause:
+            missing.append("条款号")
+        if not r.quote:
+            missing.append("法条原文")
+        if not r.source_id:
+            missing.append("来源")
+        if missing:
+            if r.scope in wanted or r.scope == "quota":
+                disabled.append(
+                    {
+                        "rule_id": r.rule_id,
+                        "title": r.title,
+                        "status": r.status,
+                        "clause_status": r.clause_status,
+                        "reason": "缺锚点（%s），不参与判定" % "、".join(missing),
+                    }
+                )
+            continue
         if r.scope == "quota":
             # 条件触发/监管裁量：不作为相对人义务判定，但必须在报告里显式呈现
             if scope == "calc":

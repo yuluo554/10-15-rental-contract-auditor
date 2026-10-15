@@ -137,6 +137,29 @@ def test_clause_status_does_not_gate(tmp_path):
     assert rid in [r.rule_id for r in rs.rules], "条款号 pending 不得阻断判定"
 
 
+@pytest.mark.parametrize("field", ["quote", "clause", "source_id"])
+def test_rule_missing_anchor_is_gated_out(tmp_path, field):
+    """题面模块②硬约束：**缺锚点的规则不得被引擎加载生效**。
+
+    锚点 = 条款号 + 法条原文逐字引用 + 来源。生成器已对出厂规则做逐字断言，
+    但门控不能只依赖上游（规则包可被手工替换、或由第三方扩展包提供），
+    引擎必须在**加载侧**再拦一次——否则报告会给出"看起来有依据"的判定，
+    读者却找不到原文核对（比不判定更危险）。
+    """
+    src = json.loads((DATA / "rules" / "ruleset-bj.json").read_text(encoding="utf-8"))
+    rid = src["rules"][0]["rule_id"]
+    src["rules"][0][field] = None if field != "source_id" else ""
+    (tmp_path / "rules").mkdir(parents=True)
+    (tmp_path / "rules" / "ruleset-bj.json").write_text(
+        json.dumps(src, ensure_ascii=False), encoding="utf-8"
+    )
+    rs = effective_ruleset("北京", "calc", str(tmp_path))
+    assert rid not in [r.rule_id for r in rs.rules], "缺 %s 的规则不得进判定路径" % field
+    hit = [d for d in rs.disabled_rules if d["rule_id"] == rid]
+    assert hit, "被拦下的缺锚点规则必须进未启用清单（显式可见，不静默丢弃）"
+    assert "缺锚点" in hit[0]["reason"]
+
+
 def test_scope_filters_judgment_path():
     """quota 类不进判定路径，但以 reference_rules 呈现。"""
     rs = effective_ruleset("北京", "calc", str(DATA))
