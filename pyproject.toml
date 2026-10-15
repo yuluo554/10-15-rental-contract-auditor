@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rca"
+version = "0.1.0"
+description = "房屋租赁合同审计器（租客视角）——把分散在民法典与城市条例里的数值规则做成可核验的合同体检，每条判定挂法条原文锚点"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [{ name = "yuluo554" }]
+keywords = ["rental", "contract", "audit", "compliance", "legal"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.12",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Topic :: Office/Business",
+]
+# 核心层零第三方依赖（纯 stdlib）——`pip install -e .` 即可跑 CLI
+dependencies = []
+
+[project.optional-dependencies]
+# GUI 桌面形态（PySide6 6.7+ 元数据 requires-python>=3.9，故锁定 <6.7 以兼容 3.8 通道）
+gui = ["PySide6>=6.6,<6.7"]
+# 报告导出无需 extra：XLSX 走自写最小 OOXML writer（保字节确定）
+report = []
+# 测试期依赖：测试套件真 import 的库必须在此（"测试面 = 安装面"）
+dev = ["pytest>=7,<9", "pyyaml>=6"]
+# 构建工具单列，不进运行时安装面；setuptools<81：PyInstaller 仍 import pkg_resources，81 起移除
+build = ["pyinstaller>=6", "setuptools<81"]
+
+[project.scripts]
+rca = "rca.cli:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

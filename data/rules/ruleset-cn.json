@@ -1,0 +1,188 @@
+{
+  "ruleset_id": "cn-2021.01",
+  "city": "全国",
+  "city_code": "cn",
+  "version": "2021.01",
+  "generated_by": "tools/gen_rulesets.py",
+  "sources": [
+    {
+      "source_id": "SRC-CN-CIVIL-CODE",
+      "title": "《中华人民共和国民法典》",
+      "doc_no": "主席令第四十五号",
+      "effective_date": "2021-01-01",
+      "url": "https://www.court.gov.cn/zixun/xiangqing/233181.html",
+      "snapshot": "data/knowledge/raw/cn-civil-code.txt",
+      "snapshot_sha256": "520ddbd366ee27e9bde173766e17945a062b781e29a7e43b041e31bc5c769b76",
+      "fetched_date": "2026-10-15"
+    },
+    {
+      "source_id": "SRC-BJ-HOUSING-RENTAL",
+      "title": "《北京市住房租赁条例》",
+      "doc_no": "北京市人民代表大会常务委员会公告〔十五届〕第 74 号",
+      "effective_date": "2022-09-01",
+      "url": "http://www.bjrd.gov.cn/rdzl/dfxfgk/dfxfg/202205/t20220527_2722977.html",
+      "snapshot": "data/knowledge/raw/bj-housing-rental.txt",
+      "snapshot_sha256": "d5a6eeb443a6274eeb3b345da56f6de5cd2c399467b06d803c2b171fb91c4aad",
+      "fetched_date": "2026-10-15"
+    },
+    {
+      "source_id": "SRC-SH-HOUSING-RENTAL",
+      "title": "《上海市住房租赁条例》",
+      "doc_no": "上海市人民代表大会常务委员会公告〔十五届〕第 133 号",
+      "effective_date": "2023-02-01",
+      "url": "https://www.shanghai.gov.cn/bzxzlzfjbzc/20230418/8a0798aa5f444182a33065910f5b272c.html",
+      "snapshot": "data/knowledge/raw/sh-housing-rental.txt",
+      "snapshot_sha256": "f9092d9fc3c2088bc5ebc7644468ac515c3ab0d77d1a672b572979e5df31f811",
+      "fetched_date": "2026-10-15"
+    },
+    {
+      "source_id": "SRC-BJ-DEPOSIT-ESCROW",
+      "title": "《北京市住房租赁押金托管和租金监管暂行办法》",
+      "doc_no": "京建法〔2024〕8 号",
+      "effective_date": "2024-10-01",
+      "url": "https://zjw.beijing.gov.cn/bjjs/xxgk/zcwj2024/gfxwj40/xxyx/543372836/index.shtml",
+      "snapshot": "data/knowledge/raw/bj-deposit-escrow.txt",
+      "snapshot_sha256": "3a2cfdd90cb3717bd7759e681627111adebaf28346dafb180778f5b4492dab1b",
+      "fetched_date": "2026-10-15"
+    }
+  ],
+  "benchmark_thresholds": {
+    "B1_parse_f1_min": 0.95,
+    "B2_hit_rate_min": 0.95,
+    "B2_false_positive_max": 0,
+    "B3_boundary_pass_rate_min": 1.0,
+    "max_runtime_seconds": 60
+  },
+  "coverage": {
+    "note": "规则包条目总数按 check_type 登记；真值库采样数由基准层填充（plan/04 §2.3）",
+    "rule_totals_by_check_type": {
+      "deadline_obligation": 1,
+      "element_completeness": 1,
+      "numeric_limit": 1
+    },
+    "rule_total": 3
+  },
+  "rules": [
+    {
+      "rule_id": "CN-LEASE-TERM-MAX",
+      "title": "租赁期限不得超过二十年",
+      "check_type": "numeric_limit",
+      "scope": "calc",
+      "param": "lease_term_years",
+      "op": "<=",
+      "value": 20,
+      "unit": "年",
+      "applies_if": {
+        "party": [
+          "any"
+        ]
+      },
+      "effect": "standing_obligation",
+      "severity": "high",
+      "source_id": "SRC-CN-CIVIL-CODE",
+      "clause": "第七百零五条",
+      "quote": "租赁期限不得超过二十年。超过二十年的，超过部分无效。",
+      "status": "verified",
+      "clause_status": "verified"
+    },
+    {
+      "rule_id": "CN-ELEMENT-COMPLETENESS",
+      "title": "租赁合同应包含法定要素",
+      "check_type": "element_completeness",
+      "scope": "check",
+      "param": "has_elements",
+      "op": null,
+      "value": null,
+      "unit": null,
+      "applies_if": {
+        "party": [
+          "any"
+        ]
+      },
+      "effect": "standing_obligation",
+      "severity": "low",
+      "source_id": "SRC-CN-CIVIL-CODE",
+      "clause": "第七百零四条",
+      "quote": "租赁合同的内容一般包括租赁物的名称、数量、用途、租赁期限、租金及其支付期限和方式、租赁物维修等条款。",
+      "status": "verified",
+      "clause_status": "verified",
+      "elements": [
+        {
+          "name": "租赁物的名称",
+          "aliases": [
+            "房屋",
+            "住房",
+            "坐落",
+            "位于",
+            "地址",
+            "房产"
+          ]
+        },
+        {
+          "name": "数量",
+          "aliases": [
+            "面积",
+            "套",
+            "间",
+            "室",
+            "平方米"
+          ]
+        },
+        {
+          "name": "用途",
+          "aliases": [
+            "用途",
+            "居住",
+            "使用"
+          ]
+        },
+        {
+          "name": "租赁期限",
+          "aliases": [
+            "租赁期限",
+            "租期",
+            "期限"
+          ]
+        },
+        {
+          "name": "租金及其支付期限和方式",
+          "aliases": [
+            "租金",
+            "支付",
+            "付款"
+          ]
+        },
+        {
+          "name": "租赁物维修",
+          "aliases": [
+            "维修",
+            "修缮",
+            "维护"
+          ]
+        }
+      ]
+    },
+    {
+      "rule_id": "CN-RENT-PAY-PERIOD",
+      "title": "租金支付期限未约定时的法定补充规则",
+      "check_type": "deadline_obligation",
+      "scope": "check",
+      "param": "rent_pay_period_declared",
+      "op": null,
+      "value": null,
+      "unit": null,
+      "applies_if": {
+        "party": [
+          "any"
+        ]
+      },
+      "effect": "standing_obligation",
+      "severity": "low",
+      "source_id": "SRC-CN-CIVIL-CODE",
+      "clause": "第七百二十一条",
+      "quote": "承租人应当按照约定的期限支付租金。对支付租金的期限没有约定或者约定不明确，依据本法第五百一十条的规定仍不能确定，租赁期限不满一年的，应当在租赁期限届满时支付；租赁期限一年以上的，应当在每届满一年时支付，剩余期限不满一年的，应当在租赁期限届满时支付。",
+      "status": "verified",
+      "clause_status": "verified"
+    }
+  ]
+}

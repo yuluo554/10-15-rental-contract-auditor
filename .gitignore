@@ -11,6 +11,8 @@ dist/
 *.egg-info/
 *.egg
 *.spec
+# 例外：打包 spec 是我们的源码，必须入仓（`*.spec` 通配会把它吞掉）
+!tools/rca.spec
 wheels/
 pip-wheel-metadata/
 
@@ -22,6 +24,11 @@ venv/
 
 # Private / local data
 _private/
+data/**/_private/
+
+# 验证期草稿产物（放仓库树外或此目录，绝不入仓）
+_scratch/
+_backups/
 
 # Logs / caches
 *.log

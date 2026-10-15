@@ -1,0 +1,138 @@
+[
+  {
+    "sample_id": "S-BJ-001",
+    "city": "北京",
+    "party": "enterprise",
+    "contract_text": "北京住房租赁合同\n\n出租人（甲方）：北京安心住房租赁有限公司\n承租人（乙方）：李四\n联系电话：19900000003\n\n第一条 甲方将位于北京西城区的住房出租给乙方居住使用，建筑面积 115 平方米。\n第二条 租赁期限为 3 年，自 2026 年 1 月 1 日起至 2029 年 1 月 1 日止。\n第三条 月租金为人民币 4500 元，乙方按月支付。\n第四条 乙方应向甲方支付押金 1 个月租金，即人民币 4500 元。\n第五条 甲方单次收取租金 3 个月，乙方应在签约时一次性支付。\n第六条 甲方应自合同订立之日起 15 日内办理登记备案，并自合同订立之日起 5 个工作日内办理出租登记。\n第七条 租赁期满，甲方应在乙方返还住房后 3 个工作日内退还押金。\n第八条 房屋及其附属设施的维修责任由甲方承担。\n",
+    "expect": {
+      "BJ-CONTRACT-ELEMENT-DEPOSIT": "compliant",
+      "BJ-DEPOSIT-MAX-1M": "compliant",
+      "BJ-DEPOSIT-REFUND-3WD": "compliant",
+      "BJ-FILING-30D": "compliant",
+      "BJ-LODGING-REG-3WD": "noncompliant",
+      "BJ-RENT-PREPAY-MAX-3M": "compliant",
+      "CN-LEASE-TERM-MAX": "compliant"
+    },
+    "also_expect": {
+      "BJ-RENT-INTERVENTION": "reference"
+    },
+    "notes": "合成样例：假姓名/假手机号；押金1个月、单次收租3个月、备案15日、出租登记5工作日、退押金3工作日"
+  },
+  {
+    "sample_id": "S-BJ-002",
+    "city": "北京",
+    "party": "individual",
+    "contract_text": "北京住房租赁合同\n\n出租人（甲方）：个人出租（李四）\n承租人（乙方）：李四\n联系电话：19900000001\n\n第一条 甲方将位于北京西城区的住房出租给乙方居住使用，建筑面积 89 平方米。\n第二条 租赁期限为 3 年，自 2026 年 1 月 1 日起至 2029 年 1 月 1 日止。\n第三条 月租金为人民币 4500 元，乙方按月支付。\n第四条 乙方应向甲方支付押金 2 个月租金，即人民币 9000 元。\n第五条 甲方单次收取租金 3 个月，乙方应在签约时一次性支付。\n第六条 甲方应自合同订立之日起 30 日内办理登记备案，并自合同订立之日起 3 个工作日内办理出租登记。\n第七条 租赁期满，甲方应在乙方返还住房后 7 个工作日内退还押金。\n第八条 房屋及其附属设施的维修责任由甲方承担。\n",
+    "expect": {
+      "BJ-CONTRACT-ELEMENT-DEPOSIT": "compliant",
+      "BJ-DEPOSIT-MAX-1M": "skipped",
+      "BJ-DEPOSIT-REFUND-3WD": "skipped",
+      "BJ-FILING-30D": "compliant",
+      "BJ-LODGING-REG-3WD": "compliant",
+      "BJ-RENT-PREPAY-MAX-3M": "skipped",
+      "CN-LEASE-TERM-MAX": "compliant"
+    },
+    "also_expect": {
+      "BJ-RENT-INTERVENTION": "reference"
+    },
+    "notes": "合成样例：假姓名/假手机号；押金2个月、单次收租3个月、备案30日、出租登记3工作日、退押金7工作日"
+  },
+  {
+    "sample_id": "S-BJ-003",
+    "city": "北京",
+    "party": "enterprise",
+    "contract_text": "北京住房租赁合同\n\n出租人（甲方）：北京安心住房租赁有限公司\n承租人（乙方）：王五\n联系电话：19900000004\n\n第一条 甲方将位于北京朝阳区的住房出租给乙方居住使用，建筑面积 102 平方米。\n第二条 租赁期限为 1 年，自 2026 年 1 月 1 日起至 2027 年 1 月 1 日止。\n第三条 月租金为人民币 4500 元，乙方按月支付。\n第四条 乙方应向甲方支付押金 1 个月租金，即人民币 4500 元。\n第五条 甲方单次收取租金 3 个月，乙方应在签约时一次性支付。\n第六条 甲方应自合同订立之日起 15 日内办理登记备案，并自合同订立之日起 3 个工作日内办理出租登记。\n第七条 租赁期满，甲方应在乙方返还住房后 7 个工作日内退还押金。\n第八条 房屋及其附属设施的维修责任由甲方承担。\n",
+    "expect": {
+      "BJ-CONTRACT-ELEMENT-DEPOSIT": "compliant",
+      "BJ-DEPOSIT-MAX-1M": "compliant",
+      "BJ-DEPOSIT-REFUND-3WD": "noncompliant",
+      "BJ-FILING-30D": "compliant",
+      "BJ-LODGING-REG-3WD": "compliant",
+      "BJ-RENT-PREPAY-MAX-3M": "compliant",
+      "CN-LEASE-TERM-MAX": "compliant"
+    },
+    "also_expect": {
+      "BJ-RENT-INTERVENTION": "reference"
+    },
+    "notes": "合成样例：假姓名/假手机号；押金1个月、单次收租3个月、备案15日、出租登记3工作日、退押金7工作日"
+  },
+  {
+    "sample_id": "S-BJ-004",
+    "city": "北京",
+    "party": "enterprise",
+    "contract_text": "北京住房租赁合同\n\n出租人（甲方）：北京安心住房租赁有限公司\n承租人（乙方）：张三\n联系电话：19900000004\n\n第一条 甲方将位于北京西城区的住房出租给乙方居住使用，建筑面积 68 平方米。\n第二条 租赁期限为 3 年，自 2026 年 1 月 1 日起至 2029 年 1 月 1 日止。\n第三条 月租金为人民币 7800 元，乙方按月支付。\n第四条 乙方应向甲方支付押金 2 个月租金，即人民币 15600 元。\n第五条 甲方单次收取租金 3 个月，乙方应在签约时一次性支付。\n第六条 甲方应自合同订立之日起 30 日内办理登记备案，并自合同订立之日起 3 个工作日内办理出租登记。\n第七条 租赁期满，甲方应在乙方返还住房后 3 个工作日内退还押金。\n第八条 房屋及其附属设施的维修责任由甲方承担。\n",
+    "expect": {
+      "BJ-CONTRACT-ELEMENT-DEPOSIT": "compliant",
+      "BJ-DEPOSIT-MAX-1M": "noncompliant",
+      "BJ-DEPOSIT-REFUND-3WD": "compliant",
+      "BJ-FILING-30D": "compliant",
+      "BJ-LODGING-REG-3WD": "compliant",
+      "BJ-RENT-PREPAY-MAX-3M": "compliant",
+      "CN-LEASE-TERM-MAX": "compliant"
+    },
+    "also_expect": {
+      "BJ-RENT-INTERVENTION": "reference"
+    },
+    "notes": "合成样例：假姓名/假手机号；押金2个月、单次收租3个月、备案30日、出租登记3工作日、退押金3工作日"
+  },
+  {
+    "sample_id": "S-SH-005",
+    "city": "上海",
+    "party": "individual",
+    "contract_text": "上海住房租赁合同\n\n出租人（甲方）：个人出租（钱七）\n承租人（乙方）：钱七\n联系电话：19900000004\n\n第一条 甲方将位于上海静安区的住房出租给乙方居住使用，建筑面积 89 平方米。\n第二条 租赁期限为 21 年，自 2026 年 1 月 1 日起至 2047 年 1 月 1 日止。\n第三条 月租金为人民币 4500 元，乙方按月支付。\n第四条 乙方应向甲方支付押金 2 个月租金，即人民币 9000 元。\n第五条 甲方单次收取租金 3 个月，乙方应在签约时一次性支付。\n第六条 甲方应自合同订立之日起 15 日内办理登记备案，并自合同订立之日起 3 个工作日内办理出租登记。\n第七条 租赁期满，甲方应在乙方返还住房后 5 个工作日内退还押金。\n第八条 房屋及其附属设施的维修责任由甲方承担。\n",
+    "expect": {
+      "CN-LEASE-TERM-MAX": "noncompliant",
+      "SH-AFFORDABLE-DEPOSIT-1M": "skipped",
+      "SH-ENTERPRISE-FILING-30D": "skipped",
+      "SH-FILING-30D": "compliant",
+      "SH-RENT-DEPOSIT-ESCROW": "skipped"
+    },
+    "also_expect": {},
+    "notes": "合成样例：假姓名/假手机号；押金2个月、单次收租3个月、备案15日、出租登记3工作日、退押金5工作日"
+  },
+  {
+    "sample_id": "S-SH-006",
+    "city": "上海",
+    "party": "enterprise",
+    "contract_text": "上海住房租赁合同\n\n出租人（甲方）：上海宜居住房租赁有限公司\n承租人（乙方）：赵六\n联系电话：19900000003\n\n第一条 甲方将位于上海静安区的住房出租给乙方居住使用，建筑面积 89 平方米。\n第二条 租赁期限为 2 年，自 2026 年 1 月 1 日起至 2028 年 1 月 1 日止。\n第三条 月租金为人民币 7800 元，乙方按月支付。\n第四条 乙方应向甲方支付押金 1 个月租金，即人民币 7800 元。\n第五条 甲方单次收取租金 3 个月，乙方应在签约时一次性支付。\n第六条 甲方应自合同订立之日起 45 日内办理登记备案，并自合同订立之日起 3 个工作日内办理出租登记。\n第七条 租赁期满，甲方应在乙方返还住房后 3 个工作日内退还押金。\n第八条 房屋及其附属设施的维修责任由甲方承担。\n",
+    "expect": {
+      "CN-LEASE-TERM-MAX": "compliant",
+      "SH-AFFORDABLE-DEPOSIT-1M": "skipped",
+      "SH-ENTERPRISE-FILING-30D": "unknown",
+      "SH-FILING-30D": "noncompliant",
+      "SH-RENT-DEPOSIT-ESCROW": "compliant"
+    },
+    "also_expect": {},
+    "notes": "合成样例：假姓名/假手机号；押金1个月、单次收租3个月、备案45日、出租登记3工作日、退押金3工作日"
+  },
+  {
+    "sample_id": "S-SH-007",
+    "city": "上海",
+    "party": "enterprise",
+    "contract_text": "上海住房租赁合同\n\n出租人（甲方）：上海宜居住房租赁有限公司\n承租人（乙方）：孙八\n联系电话：19900000004\n\n第一条 甲方将位于上海徐汇区的住房出租给乙方居住使用，建筑面积 115 平方米。\n第二条 租赁期限为 2 年，自 2026 年 1 月 1 日起至 2028 年 1 月 1 日止。\n第三条 月租金为人民币 7800 元，乙方按月支付。\n第四条 乙方应向甲方支付押金 1 个月租金，即人民币 7800 元。\n第五条 甲方单次收取租金 3 个月，乙方应在签约时一次性支付。\n第六条 甲方应自合同订立之日起 45 日内办理登记备案，并自合同订立之日起 3 个工作日内办理出租登记。\n第七条 租赁期满，甲方应在乙方返还住房后 7 个工作日内退还押金。\n第八条 房屋及其附属设施的维修责任由甲方承担。\n",
+    "expect": {
+      "CN-LEASE-TERM-MAX": "compliant",
+      "SH-AFFORDABLE-DEPOSIT-1M": "skipped",
+      "SH-ENTERPRISE-FILING-30D": "unknown",
+      "SH-FILING-30D": "noncompliant",
+      "SH-RENT-DEPOSIT-ESCROW": "compliant"
+    },
+    "also_expect": {},
+    "notes": "合成样例：假姓名/假手机号；押金1个月、单次收租3个月、备案45日、出租登记3工作日、退押金7工作日"
+  },
+  {
+    "sample_id": "S-SH-008",
+    "city": "上海",
+    "party": "individual",
+    "contract_text": "上海住房租赁合同\n\n出租人（甲方）：个人出租（钱七）\n承租人（乙方）：钱七\n联系电话：19900000001\n\n第一条 甲方将位于上海浦东新区的住房出租给乙方居住使用，建筑面积 115 平方米。\n第二条 租赁期限为 3 年，自 2026 年 1 月 1 日起至 2029 年 1 月 1 日止。\n第三条 月租金为人民币 6200 元，乙方按月支付。\n第四条 乙方应向甲方支付押金 2 个月租金，即人民币 12400 元。\n第五条 甲方单次收取租金 3 个月，乙方应在签约时一次性支付。\n第六条 甲方应自合同订立之日起 30 日内办理登记备案，并自合同订立之日起 5 个工作日内办理出租登记。\n第七条 租赁期满，甲方应在乙方返还住房后 5 个工作日内退还押金。\n第八条 房屋及其附属设施的维修责任由甲方承担。\n",
+    "expect": {
+      "CN-LEASE-TERM-MAX": "compliant",
+      "SH-AFFORDABLE-DEPOSIT-1M": "skipped",
+      "SH-ENTERPRISE-FILING-30D": "skipped",
+      "SH-FILING-30D": "compliant",
+      "SH-RENT-DEPOSIT-ESCROW": "skipped"
+    },
+    "also_expect": {},
+    "notes": "合成样例：假姓名/假手机号；押金2个月、单次收租3个月、备案30日、出租登记5工作日、退押金5工作日"
+  }
+]

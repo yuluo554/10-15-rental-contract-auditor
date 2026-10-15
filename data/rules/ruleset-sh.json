@@ -1,0 +1,157 @@
+{
+  "ruleset_id": "sh-2023.02",
+  "city": "上海",
+  "city_code": "sh",
+  "version": "2023.02",
+  "generated_by": "tools/gen_rulesets.py",
+  "sources": [
+    {
+      "source_id": "SRC-CN-CIVIL-CODE",
+      "title": "《中华人民共和国民法典》",
+      "doc_no": "主席令第四十五号",
+      "effective_date": "2021-01-01",
+      "url": "https://www.court.gov.cn/zixun/xiangqing/233181.html",
+      "snapshot": "data/knowledge/raw/cn-civil-code.txt",
+      "snapshot_sha256": "520ddbd366ee27e9bde173766e17945a062b781e29a7e43b041e31bc5c769b76",
+      "fetched_date": "2026-10-15"
+    },
+    {
+      "source_id": "SRC-BJ-HOUSING-RENTAL",
+      "title": "《北京市住房租赁条例》",
+      "doc_no": "北京市人民代表大会常务委员会公告〔十五届〕第 74 号",
+      "effective_date": "2022-09-01",
+      "url": "http://www.bjrd.gov.cn/rdzl/dfxfgk/dfxfg/202205/t20220527_2722977.html",
+      "snapshot": "data/knowledge/raw/bj-housing-rental.txt",
+      "snapshot_sha256": "d5a6eeb443a6274eeb3b345da56f6de5cd2c399467b06d803c2b171fb91c4aad",
+      "fetched_date": "2026-10-15"
+    },
+    {
+      "source_id": "SRC-SH-HOUSING-RENTAL",
+      "title": "《上海市住房租赁条例》",
+      "doc_no": "上海市人民代表大会常务委员会公告〔十五届〕第 133 号",
+      "effective_date": "2023-02-01",
+      "url": "https://www.shanghai.gov.cn/bzxzlzfjbzc/20230418/8a0798aa5f444182a33065910f5b272c.html",
+      "snapshot": "data/knowledge/raw/sh-housing-rental.txt",
+      "snapshot_sha256": "f9092d9fc3c2088bc5ebc7644468ac515c3ab0d77d1a672b572979e5df31f811",
+      "fetched_date": "2026-10-15"
+    },
+    {
+      "source_id": "SRC-BJ-DEPOSIT-ESCROW",
+      "title": "《北京市住房租赁押金托管和租金监管暂行办法》",
+      "doc_no": "京建法〔2024〕8 号",
+      "effective_date": "2024-10-01",
+      "url": "https://zjw.beijing.gov.cn/bjjs/xxgk/zcwj2024/gfxwj40/xxyx/543372836/index.shtml",
+      "snapshot": "data/knowledge/raw/bj-deposit-escrow.txt",
+      "snapshot_sha256": "3a2cfdd90cb3717bd7759e681627111adebaf28346dafb180778f5b4492dab1b",
+      "fetched_date": "2026-10-15"
+    }
+  ],
+  "benchmark_thresholds": {
+    "B1_parse_f1_min": 0.95,
+    "B2_hit_rate_min": 0.95,
+    "B2_false_positive_max": 0,
+    "B3_boundary_pass_rate_min": 1.0,
+    "max_runtime_seconds": 60
+  },
+  "coverage": {
+    "note": "规则包条目总数按 check_type 登记；真值库采样数由基准层填充（plan/04 §2.3）",
+    "rule_totals_by_check_type": {
+      "deadline_obligation": 2,
+      "numeric_limit": 2
+    },
+    "rule_total": 4
+  },
+  "rules": [
+    {
+      "rule_id": "SH-FILING-30D",
+      "title": "出租人应自合同订立后三十日内办理登记备案",
+      "check_type": "deadline_obligation",
+      "scope": "calc",
+      "param": "filing_days",
+      "op": "<=",
+      "value": 30,
+      "unit": "日",
+      "applies_if": {
+        "party": [
+          "any"
+        ]
+      },
+      "effect": "periodic_obligation",
+      "severity": "medium",
+      "source_id": "SRC-SH-HOUSING-RENTAL",
+      "clause": "第十七条",
+      "quote": "出租人应当自住房租赁合同订立后三十日内，向区房屋管理部门办理登记备案。",
+      "status": "verified",
+      "clause_status": "verified"
+    },
+    {
+      "rule_id": "SH-RENT-DEPOSIT-ESCROW",
+      "title": "超三个月租金部分与超一个月押金部分应存入资金监管专用账户",
+      "check_type": "numeric_limit",
+      "scope": "calc",
+      "param": "deposit_months",
+      "op": "<=",
+      "value": 1,
+      "unit": "月租金",
+      "applies_if": {
+        "party": [
+          "enterprise"
+        ]
+      },
+      "effect": "standing_obligation",
+      "severity": "high",
+      "source_id": "SRC-SH-HOUSING-RENTAL",
+      "clause": "第二十九条",
+      "quote": "住房租赁企业向承租人一次性收取租金超过三个月的部分，以及收取押金超过一个月租金的部分，应当存入住房租赁交易资金监管专用账户。",
+      "status": "verified",
+      "clause_status": "verified"
+    },
+    {
+      "rule_id": "SH-AFFORDABLE-DEPOSIT-1M",
+      "title": "保障性租赁住房收取的押金不得超过一个月租金",
+      "check_type": "numeric_limit",
+      "scope": "calc",
+      "param": "deposit_months",
+      "op": "<=",
+      "value": 1,
+      "unit": "月租金",
+      "applies_if": {
+        "party": [
+          "any"
+        ],
+        "lease_kind": [
+          "affordable"
+        ]
+      },
+      "effect": "standing_obligation",
+      "severity": "high",
+      "source_id": "SRC-SH-HOUSING-RENTAL",
+      "clause": "第三十七条",
+      "quote": "保障性租赁住房租金不得高于备案的租赁价格，并应当按月或者按季度收取；收取的押金不得超过一个月租金。",
+      "status": "verified",
+      "clause_status": "verified"
+    },
+    {
+      "rule_id": "SH-ENTERPRISE-FILING-30D",
+      "title": "住房租赁企业应自领取营业执照之日起三十日内备案",
+      "check_type": "deadline_obligation",
+      "scope": "calc",
+      "param": "enterprise_filing_days",
+      "op": "<=",
+      "value": 30,
+      "unit": "日",
+      "applies_if": {
+        "party": [
+          "enterprise"
+        ]
+      },
+      "effect": "periodic_obligation",
+      "severity": "medium",
+      "source_id": "SRC-SH-HOUSING-RENTAL",
+      "clause": "第二十二条",
+      "quote": "住房租赁企业、房地产经纪机构应当自领取营业执照之日起三十日内，向区房屋管理部门备案。",
+      "status": "verified",
+      "clause_status": "verified"
+    }
+  ]
+}

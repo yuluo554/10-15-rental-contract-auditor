@@ -1,0 +1,53 @@
+{
+  "note": "官方来源快照台账。快照为字节冻结件（.gitattributes 标 -text），禁手改。",
+  "sources": [
+    {
+      "source_id": "SRC-CN-CIVIL-CODE",
+      "title": "《中华人民共和国民法典》",
+      "doc_no": "主席令第四十五号",
+      "effective_date": "2021-01-01",
+      "url": "https://www.court.gov.cn/zixun/xiangqing/233181.html",
+      "snapshot": "data/knowledge/raw/cn-civil-code.txt",
+      "sha256": "520ddbd366ee27e9bde173766e17945a062b781e29a7e43b041e31bc5c769b76",
+      "bytes": 325832,
+      "han_chars": 99069,
+      "fetched_date": "2026-10-15"
+    },
+    {
+      "source_id": "SRC-BJ-HOUSING-RENTAL",
+      "title": "《北京市住房租赁条例》",
+      "doc_no": "北京市人民代表大会常务委员会公告〔十五届〕第 74 号",
+      "effective_date": "2022-09-01",
+      "url": "http://www.bjrd.gov.cn/rdzl/dfxfgk/dfxfg/202205/t20220527_2722977.html",
+      "snapshot": "data/knowledge/raw/bj-housing-rental.txt",
+      "sha256": "d5a6eeb443a6274eeb3b345da56f6de5cd2c399467b06d803c2b171fb91c4aad",
+      "bytes": 30282,
+      "han_chars": 9136,
+      "fetched_date": "2026-10-15"
+    },
+    {
+      "source_id": "SRC-SH-HOUSING-RENTAL",
+      "title": "《上海市住房租赁条例》",
+      "doc_no": "上海市人民代表大会常务委员会公告〔十五届〕第 133 号",
+      "effective_date": "2023-02-01",
+      "url": "https://www.shanghai.gov.cn/bzxzlzfjbzc/20230418/8a0798aa5f444182a33065910f5b272c.html",
+      "snapshot": "data/knowledge/raw/sh-housing-rental.txt",
+      "sha256": "f9092d9fc3c2088bc5ebc7644468ac515c3ab0d77d1a672b572979e5df31f811",
+      "bytes": 26894,
+      "han_chars": 8094,
+      "fetched_date": "2026-10-15"
+    },
+    {
+      "source_id": "SRC-BJ-DEPOSIT-ESCROW",
+      "title": "《北京市住房租赁押金托管和租金监管暂行办法》",
+      "doc_no": "京建法〔2024〕8 号",
+      "effective_date": "2024-10-01",
+      "url": "https://zjw.beijing.gov.cn/bjjs/xxgk/zcwj2024/gfxwj40/xxyx/543372836/index.shtml",
+      "snapshot": "data/knowledge/raw/bj-deposit-escrow.txt",
+      "sha256": "3a2cfdd90cb3717bd7759e681627111adebaf28346dafb180778f5b4492dab1b",
+      "bytes": 13098,
+      "han_chars": 3976,
+      "fetched_date": "2026-10-15"
+    }
+  ]
+}
