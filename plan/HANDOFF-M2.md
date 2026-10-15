@@ -10,11 +10,11 @@
 
 | 项 | 状态 | 证据 |
 |---|---|---|
-| 北京规则包 10 条（数值 7） | ✅ | `data/rules/ruleset-bj.json`（sha256 前 16 位 `b2a030855673ff21`） |
+| 北京规则包 10 条（数值 7） | ✅ | `data/rules/ruleset-bj.json`（sha256 前 16 位 `18733c0829c27175`） |
 | 上海规则包 7 条（数值 6） | ✅ | `data/rules/ruleset-sh.json`（`61be112ac3bab0b9`） |
 | 全国层 4 条 | ✅ | `data/rules/ruleset-cn.json`（`23a667bdd69ba94a`） |
 | 配套办法来源被真实引用 | ✅ | 京包 2 条规则挂 `SRC-BJ-DEPOSIT-ESCROW`（第九条 / 第十三条） |
-| 合成样例 10 份（含 2 份保租房） | ✅ | `data/samples/samples.json`（`58ab1ae13111efef`）+ `demo-contract-bj.txt` |
+| 合成样例 10 份（含 2 份保租房） | ✅ | `data/samples/samples.json`（`d835e8daee1c0246`）+ `demo-contract-bj.txt` |
 | 测试全绿 | ✅ | **149 项**，双解释器（3.8.8 / 3.12.10） |
 | 生成器冻结 | ✅ | `gen_rulesets.py --check` / `gen_samples.py --check` / `fetch_sources.py --check` 三者均 exit 0 |
 | 守门 | ✅ | `check_literals.py`（+`--selftest`）/ `audit_desensitize.py selftest|tracked` 均 exit 0（HARD 0） |
