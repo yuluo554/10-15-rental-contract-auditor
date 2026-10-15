@@ -76,27 +76,34 @@ GitHub noreply 形态（`<id>+<user>@users.noreply.github.com`，id = `282769740
 | 1 | `38699219195` | push | `main` | `1317b79` | **success** | 1 | 2026-10-15T07:30:32Z |
 | 2 | `38699794668` | push | `main` | `ce62df0` | **success** | 1 | 2026-10-15T07:35:36Z |
 | 3 | `38700167310` | push | `v0.1.0` | `ce62df0` | **success** | 1 | 2026-10-15T07:38:58Z |
-| 4 | `38701020160` | push | `main` | `aa417cf` | **success** | 1 | （发布留档提交，本文件所在提交） |
+| 4 | `38701020160` | push | `main` | `aa417cf` | **success** | 1 | （发布留档三件套提交） |
+| 5 | `38701546932` | push | `main` | `f58fe9c` | **success** | 1 | （本次对账同步提交） |
 
-**配对说明**：本里程碑共 **4 次 push**，每次 1 个 run，一一对应：
+**配对说明**：每一次 push 对应 1 个 run：
 
 | push | 内容 | ref | 对应 run |
 |---|---|---|---|
-| ① | 建仓首推（含 M2–M5 累计快照 + 收口提交） | `main` | `38699219195` |
+| ① | 建仓首推（含 M2–M5 累计快照 + M6 收口提交） | `main` | `38699219195` |
 | ② | README 状态行转正 + sha256 台账 | `main` | `38699794668` |
 | ③ | push tag `v0.1.0` | `v0.1.0` | `38700167310` |
-| ④ | 发布留档三件套（本文件等） | `main` | `38701020160` |
+| ④ | 发布留档三件套 | `main` | `38701020160` |
+| ⑤ | 对账同步 | `main` | `38701546932` |
 
 `on: push` 不带分支过滤，故 **tag push 也触发 CI**（第 3 条，ref 记为 `v0.1.0`）。
 
 **无孤儿 run**：历史改写发生在**首次推送之前**，所以不存在"旧 sha 已不可达但 run 仍在"
 的情况；全部 run 的 `run_attempt` 均为 `1`（无重跑、无 force push 残留）。
 
-> **对账可复跑**：`gh api repos/yuluo554/10-15-rental-contract-auditor/actions/runs`
-> 的 `total_count` 应等于该仓收到的 push 次数（含 tag push）。**上表截至 `aa417cf`
-> （发布留档提交）**；本文件自身的提交、以及其后任何文档类提交，都会各自再产生 1 个
-> run（本仓每次 push 均全绿）。**对账规则不变**：push 事件数 = run 数，可随时用上面
-> 命令复跑核对，不必依赖本表的静态数字。
+> **上表是快照，不是终值**。**本文件所在的这个提交，以及其后任何一次 push，都会各自
+> 再产生 1 个 run**（本仓至今每次 run 均 success）。所以**不要拿表里的数字当"总数"**——
+> 对账请用可复跑规则：
+>
+> ```bash
+> gh api repos/yuluo554/10-15-rental-contract-auditor/actions/runs --jq '.total_count'
+> ```
+>
+> **`total_count` 必须等于该仓收到的 push 次数**（含 tag push）。口径是
+> **push 事件数 = run 数**（不是提交数）——一次 push 推多个提交仍只算 1 个 run。
 
 **首跑即绿**（预算内最理想结果）：plan/05 §9 预算是"诊断 + 修复 + 再推一轮"，
 实际**首次运行 4 个 job 全部通过**，无需诊断轮次。逐 job：
@@ -243,7 +250,7 @@ GitHub noreply 形态（`<id>+<user>@users.noreply.github.com`，id = `282769740
 | **R20（已闭环）** | `package` job 从未在 CI 跑 | **M6 闭环**：run `38699219195` 的 package job 首次在 runner 通过（62s） |
 | **R23 口径** | exe 不承诺跨机字节一致 | 已写入 `plan/DIST-sha256-M6.txt` 与 release notes；可复跑的是"同 dist→同 zip" |
 | **R26（新）** | **历史改写后旧 sha 全不可达**，若曾有外部引用会断链 | 本仓零消费者窗口期内改写，无外部引用；`plan/00`/`plan/06` 已同步，`plan/HANDOFF-M1.md` 按快照约定保留原引用，映射见 §7 |
-| **R27（新）** | **CI 被 tag push 二次触发**（`on: push` 无 ref 过滤） | 当前 3 run 全绿无副作用；若要避免重复消耗，可加 `branches: [main]`，但那样 tag 就不再验证——**本项目选择保留**（tag 上的绿是"发布点可构建"的直接证据） |
+| **R27（新）** | **CI 被 tag push 二次触发**（`on: push` 无 ref 过滤） | 截至发布留档期**全部 run 均 green 无副作用**；若要避免重复消耗，可加 `branches: [main]`，但那样 tag 就不再验证——**本项目选择保留**（tag 上的绿是"发布点可构建"的直接证据） |
 | **R21/R22/R24/R25** | GUI 体积 / GUI 页签少 / 变异脚本卡死风险 / M5 DoD 表格留 ⬜ | 照 `plan/HANDOFF-M6.md` §9 原样结转，M6 未处置 |
 
 ---

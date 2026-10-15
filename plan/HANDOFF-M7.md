@@ -31,7 +31,7 @@
 | CLI 发行包（Windows x64，免安装） | Release 附件 `rca-cli-win64.zip`（11,928,127 B） | 下载件 sha256 对账 + 中立目录 `--selftest` exit 0 |
 | GUI 发行包（Windows x64，PySide6） | Release 附件 `rca-gui-win64.zip`（116,266,441 B） | 同上；GUI 包 `--selftest` 结论与 CLI **逐字段一致** |
 | 源码 | `main` @ tag `v0.1.0`（commit `ce62df0`） | 全新克隆：283 测试全绿、冻结校验三连 OK |
-| CI | GitHub Actions，4 run 全绿 | 见 `plan/RELEASE-M6.md` §3 |
+| CI | GitHub Actions，每次 push 均运行且全绿（含 tag push） | 见 `plan/RELEASE-M6.md` §3 |
 | 发布留档 | `plan/RELEASE-M6.md` / `plan/DIST-sha256-M6.txt` / 本文件 | — |
 
 **"纯本地零上传"的产物级证据**：CLI 发行包排除了 `ssl`/`_ssl`/`_socket`/`_hashlib`，
@@ -107,7 +107,7 @@ M6 **未新增 K 项**——本棒不改判定逻辑、不改规则包、不改�
 
 | # | 事项 | 闭环于 |
 |---|---|---|
-| R1 | CI 从未真跑 | M6：4 run 全绿，含 `package` job |
+| R1 | CI 从未真跑 | M6：首推起每次 push 均跑且全绿（含 `package` job） |
 | R2 | 真实邮箱进历史 | M6：首推前改写，克隆件 ae/ce 均 noreply |
 | R4 | GUI 只做了骨架 | M5：真构建 + 冻结态验收 |
 | R5 | spec 从未构建过 | M5：首次实构建暴露并修掉 6 处产物级缺口 |
