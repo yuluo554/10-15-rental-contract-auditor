@@ -111,16 +111,31 @@ def _mk(rule: Rule, status: str, reason: str, **kw: Any) -> Finding:
     )
 
 
+def _limit_words(op: str) -> tuple:
+    """按运算符给出「合规/违规」两侧的方向措辞。
+
+    上限类（<= / <）与下限类（>= / >）方向相反——把下限义务描述成"未超过规则上限"
+    会让读者把"租期不得少于一年"误读成"租期不得超过一年"，是**方向性失真**
+    （比措辞粗糙更严重：它把义务说反了）。
+    """
+    if op in (">=", ">"):
+        return "不低于规则下限", "低于规则下限"
+    return "未超过规则上限", "超过规则上限"
+
+
 def _check_numeric(rule: Rule, card: LeaseCard) -> Finding:
     if rule.op is None or rule.value is None:
         # 无数值阈值的"提示/程序性"条目：不构成可判定的数值义务
         return _mk(rule, STATUS_UNKNOWN, "该条无明确数值阈值，无法作数值判定")
     field = card.get(rule.param) if rule.param else None
     if field is None or not field.observed:
+        # 阈值照挂：规则**有**限值，只是合同侧没观测到——报告里把限值一并列出，
+        # 否则读者看到 "<= —" 会误以为该条本身没有数值口径。
         return _mk(
             rule,
             STATUS_UNKNOWN,
             "合同未载明或无法抽取「%s」，无法判定" % (rule.param or rule.title),
+            limit=rule.value,
         )
     observed = _as_decimal(field.value)
     limit = _as_decimal(rule.value)
@@ -129,10 +144,11 @@ def _check_numeric(rule: Rule, card: LeaseCard) -> Finding:
         return _mk(rule, STATUS_UNKNOWN, "未知运算符 %s，无法判定" % rule.op)
     ok = cmp(observed, limit)
     status = STATUS_COMPLIANT if ok else STATUS_NONCOMPLIANT
-    reason = "约定 %s%s，%s规则上限 %s%s" % (
+    ok_words, bad_words = _limit_words(rule.op)
+    reason = "约定 %s%s，%s %s%s" % (
         observed,
         rule.unit or "",
-        "未超过" if ok else "超过",
+        ok_words if ok else bad_words,
         limit,
         rule.unit or "",
     )

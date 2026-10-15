@@ -57,11 +57,11 @@
     "note": "规则包条目总数按 check_type 登记；真值库采样数由基准层填充（plan/04 §2.3）",
     "rule_totals_by_check_type": {
       "deadline_obligation": 3,
-      "element_completeness": 1,
-      "numeric_limit": 2,
+      "element_completeness": 2,
+      "numeric_limit": 4,
       "text_prohibition": 1
     },
-    "rule_total": 7
+    "rule_total": 10
   },
   "rules": [
     {
@@ -232,6 +232,89 @@
       "source_id": "SRC-BJ-HOUSING-RENTAL",
       "clause": "第六十条",
       "quote": "住房租金明显上涨或者有可能明显上涨时，市人民政府可以采取涨价申报、限定租金或者租金涨幅等价格干预措施，稳定租金水平",
+      "status": "verified",
+      "clause_status": "verified"
+    },
+    {
+      "rule_id": "BJ-ENTERPRISE-FILING-30D",
+      "title": "住房租赁企业应自领取营业执照之日起三十日内备案",
+      "check_type": "numeric_limit",
+      "scope": "calc",
+      "param": "enterprise_filing_days",
+      "op": "<=",
+      "value": 30,
+      "unit": "日",
+      "applies_if": {
+        "party": [
+          "enterprise"
+        ]
+      },
+      "effect": "periodic_obligation",
+      "severity": "medium",
+      "source_id": "SRC-BJ-HOUSING-RENTAL",
+      "clause": "第二十七条",
+      "quote": "住房租赁企业应当自领取营业执照之日起三十日内向所在地的区住房和城乡建设或者房屋主管部门备案。",
+      "status": "verified",
+      "clause_status": "verified"
+    },
+    {
+      "rule_id": "BJ-ESCROW-DEPOSIT-TERMS",
+      "title": "押金应按合同约定的支付时间、金额存入托管账户并按约定时间方式退还",
+      "check_type": "element_completeness",
+      "scope": "check",
+      "param": "has_deposit_clause",
+      "op": null,
+      "value": null,
+      "unit": null,
+      "applies_if": {
+        "party": [
+          "any"
+        ]
+      },
+      "effect": "standing_obligation",
+      "severity": "medium",
+      "source_id": "SRC-BJ-DEPOSIT-ESCROW",
+      "clause": "第九条",
+      "quote": "押金应当按住房租赁合同约定的押金支付时间、金额存入用于押金托管的账户，并按合同约定的时间和方式退还。",
+      "status": "verified",
+      "clause_status": "verified",
+      "elements": [
+        {
+          "name": "押金支付时间与金额",
+          "aliases": [
+            "押金",
+            "保证金"
+          ]
+        },
+        {
+          "name": "押金退还时间与方式",
+          "aliases": [
+            "退还",
+            "返还",
+            "退回"
+          ]
+        }
+      ]
+    },
+    {
+      "rule_id": "BJ-ESCROW-RENT-SUPERVISION",
+      "title": "预收租金超过三个月租金的，全部租金应存入租金监管账户",
+      "check_type": "numeric_limit",
+      "scope": "quota",
+      "param": "rent_prepay_months",
+      "op": "<=",
+      "value": 3,
+      "unit": "月租金",
+      "applies_if": {
+        "party": [
+          "enterprise"
+        ]
+      },
+      "effect": "conditional_institution",
+      "severity": "medium",
+      "source_id": "SRC-BJ-DEPOSIT-ESCROW",
+      "clause": "第十三条",
+      "quote": "住房租赁合同约定预收租金数额超过3个月租金的，全部租金应当按合同约定的租金支付时间、金额存入用于租金监管的账户。",
       "status": "verified",
       "clause_status": "verified"
     }

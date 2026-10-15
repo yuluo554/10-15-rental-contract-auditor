@@ -142,3 +142,81 @@ def test_element_completeness_uses_aliases(bj_compliant, data_dir):
     result = compute_result(bj_compliant, "全国", data_dir=data_dir)
     f = _by_id(result)
     assert f["CN-ELEMENT-COMPLETENESS"].status == STATUS_COMPLIANT
+
+
+def test_lower_bound_rule_reason_uses_lower_bound_wording(data_dir):
+    """下限类规则（op=">="）的判定理由不得写成"规则上限"——方向说反比措辞粗糙更糟。
+
+    上海"保障性租赁住房租赁期限不得少于一年"是**下限**义务；若理由写"未超过规则上限
+    1年"，读者会把"不得少于一年"读成"不得超过一年"，等于把义务说反。
+    """
+    text = """上海保障性租赁住房租赁合同
+
+出租人（甲方）：上海宜居住房租赁有限公司
+承租人（乙方）：孙八
+联系电话：19900000004
+
+第一条 甲方将位于上海市静安区的保障性租赁住房出租给乙方居住使用，建筑面积 80 平方米。
+第二条 租赁期限为 9 个月。
+第三条 月租金为人民币 5000 元，乙方按月支付。
+第四条 乙方应向甲方支付押金 1 个月租金。
+"""
+    result = compute_result(text, "上海", data_dir=data_dir)
+    f = _by_id(result)["SH-AFFORDABLE-TERM-MIN-1Y"]
+    assert f.status == STATUS_NONCOMPLIANT, "9 个月 < 一年下限，必须判不符合"
+    assert "下限" in f.reason, "下限类规则的理由须写「下限」而非「上限」：%s" % f.reason
+    assert "上限" not in f.reason, "下限类规则的理由不得出现「上限」：%s" % f.reason
+
+
+def test_lower_bound_rule_compliant_at_boundary(data_dir):
+    """下限规则在边界值（恰好一年）上判符合（边界点归属语义）。"""
+    text = """上海保障性租赁住房租赁合同
+
+出租人（甲方）：上海宜居住房租赁有限公司
+承租人（乙方）：孙八
+联系电话：19900000004
+
+第一条 甲方将位于上海市静安区的保障性租赁住房出租给乙方居住使用，建筑面积 80 平方米。
+第二条 租赁期限为 1 年。
+第三条 月租金为人民币 5000 元，乙方按月支付。
+第四条 乙方应向甲方支付押金 1 个月租金。
+"""
+    result = compute_result(text, "上海", data_dir=data_dir)
+    f = _by_id(result)["SH-AFFORDABLE-TERM-MIN-1Y"]
+    assert f.status == STATUS_COMPLIANT, "恰好一年须判符合（不得少于一年）"
+
+
+def test_affordable_rules_skipped_for_ordinary_housing(bj_compliant, data_dir):
+    """保租房专属规则遇到普通租赁住房 → skipped（原文写了适用房屋类型限制）。"""
+    result = compute_result(bj_compliant, "上海", data_dir=data_dir)
+    f = _by_id(result)
+    assert f["SH-AFFORDABLE-TERM-MIN-1Y"].status == STATUS_SKIPPED
+    assert "房屋类型" in f["SH-AFFORDABLE-TERM-MIN-1Y"].reason
+
+
+def test_external_supervision_rule_is_unknown_not_skipped(bj_enterprise, data_dir):
+    """企业备案期限是外部监管义务：合同不会载明执照领取日 → unknown（不是 skipped）。
+
+    "没看到"与"不用做"是两种结论；把未观测记成不适用会让合规结论虚高。
+    """
+    result = compute_result(bj_enterprise, "北京", data_dir=data_dir)
+    f = _by_id(result)["BJ-ENTERPRISE-FILING-30D"]
+    assert f.status == STATUS_UNKNOWN
+
+
+def test_unobserved_numeric_rule_still_reports_its_limit(bj_enterprise, data_dir):
+    """合同侧未观测时，规则**限值**仍须挂出（否则报告显示 "<= —"，读者误以为该条无口径）。"""
+    result = compute_result(bj_enterprise, "北京", data_dir=data_dir)
+    f = _by_id(result)["BJ-ENTERPRISE-FILING-30D"]
+    assert f.status == STATUS_UNKNOWN
+    assert f.limit is not None, "未观测不等于规则没有限值：limit 必须照挂"
+    assert f.op == "<="
+
+
+def test_escrow_source_rules_present(bj_enterprise, data_dir):
+    """北京配套办法（京建法〔2024〕8 号）的规则须真实进入判定/条件触发栏。"""
+    result = compute_result(bj_enterprise, "北京", data_dir=data_dir)
+    f = _by_id(result)
+    assert f["BJ-ESCROW-DEPOSIT-TERMS"].source_id == "SRC-BJ-DEPOSIT-ESCROW"
+    trig = {t.rule_id: t for t in result.conditional_triggers}
+    assert trig["BJ-ESCROW-RENT-SUPERVISION"].source_id == "SRC-BJ-DEPOSIT-ESCROW"

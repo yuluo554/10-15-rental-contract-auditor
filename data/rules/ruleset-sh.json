@@ -57,9 +57,10 @@
     "note": "规则包条目总数按 check_type 登记；真值库采样数由基准层填充（plan/04 §2.3）",
     "rule_totals_by_check_type": {
       "deadline_obligation": 2,
-      "numeric_limit": 2
+      "numeric_limit": 4,
+      "text_prohibition": 1
     },
-    "rule_total": 4
+    "rule_total": 7
   },
   "rules": [
     {
@@ -150,6 +151,75 @@
       "source_id": "SRC-SH-HOUSING-RENTAL",
       "clause": "第二十二条",
       "quote": "住房租赁企业、房地产经纪机构应当自领取营业执照之日起三十日内，向区房屋管理部门备案。",
+      "status": "verified",
+      "clause_status": "verified"
+    },
+    {
+      "rule_id": "SH-AFFORDABLE-TERM-MIN-1Y",
+      "title": "保障性租赁住房租赁期限不得少于一年",
+      "check_type": "numeric_limit",
+      "scope": "calc",
+      "param": "lease_term_years",
+      "op": ">=",
+      "value": 1,
+      "unit": "年",
+      "applies_if": {
+        "party": [
+          "any"
+        ],
+        "lease_kind": [
+          "affordable"
+        ]
+      },
+      "effect": "standing_obligation",
+      "severity": "medium",
+      "source_id": "SRC-SH-HOUSING-RENTAL",
+      "clause": "第三十七条",
+      "quote": "除承租人另有要求的，保障性租赁住房租赁期限不得少于一年。",
+      "status": "verified",
+      "clause_status": "verified"
+    },
+    {
+      "rule_id": "SH-PENALTY-AFFORDABLE-RENT-DEPOSIT",
+      "title": "收取租金或押金不符合保租房要求的，处五万元以上二十万元以下罚款",
+      "check_type": "numeric_limit",
+      "scope": "quota",
+      "param": null,
+      "op": ">=",
+      "value": 50000,
+      "unit": "元",
+      "applies_if": {
+        "party": [
+          "any"
+        ]
+      },
+      "effect": "conditional_institution",
+      "severity": "advisory",
+      "source_id": "SRC-SH-HOUSING-RENTAL",
+      "clause": "第六十一条",
+      "quote": "违反本条例第三十七条第二款规定，收取的租金或者押金不符合要求的，由区房屋管理部门责令限期改正，处五万元以上二十万元以下罚款。",
+      "status": "verified",
+      "clause_status": "verified"
+    },
+    {
+      "rule_id": "SH-BAN-5Y-AFFORDABLE-APPLY",
+      "title": "转租、出借保障性租赁住房的，禁止五年内再次申请本市各类保障性住房",
+      "check_type": "text_prohibition",
+      "scope": "quota",
+      "param": null,
+      "op": null,
+      "value": null,
+      "unit": null,
+      "applies_if": {
+        "party": [
+          "any"
+        ]
+      },
+      "effect": "conditional_institution",
+      "severity": "advisory",
+      "source_id": "SRC-SH-HOUSING-RENTAL",
+      "clause": "第五十九条",
+      "quote": "违反本条例第三十五条第一款第三项规定，承租人转租、出借保障性租赁住房的，由区房屋管理部门责令限期改正，处一万元以上五万元以下罚款，并禁止五年内再次申请本市各类保障性住房。",
       "status": "verified",
       "clause_status": "verified"
     }

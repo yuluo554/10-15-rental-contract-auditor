@@ -57,10 +57,10 @@
     "note": "规则包条目总数按 check_type 登记；真值库采样数由基准层填充（plan/04 §2.3）",
     "rule_totals_by_check_type": {
       "deadline_obligation": 1,
-      "element_completeness": 1,
+      "element_completeness": 2,
       "numeric_limit": 1
     },
-    "rule_total": 3
+    "rule_total": 4
   },
   "rules": [
     {
@@ -183,6 +183,46 @@
       "quote": "承租人应当按照约定的期限支付租金。对支付租金的期限没有约定或者约定不明确，依据本法第五百一十条的规定仍不能确定，租赁期限不满一年的，应当在租赁期限届满时支付；租赁期限一年以上的，应当在每届满一年时支付，剩余期限不满一年的，应当在租赁期限届满时支付。",
       "status": "verified",
       "clause_status": "verified"
+    },
+    {
+      "rule_id": "CN-WRITTEN-FORM-6M",
+      "title": "租赁期限六个月以上的应采用书面形式",
+      "check_type": "element_completeness",
+      "scope": "check",
+      "param": "has_elements",
+      "op": null,
+      "value": null,
+      "unit": null,
+      "applies_if": {
+        "party": [
+          "any"
+        ]
+      },
+      "effect": "standing_obligation",
+      "severity": "low",
+      "source_id": "SRC-CN-CIVIL-CODE",
+      "clause": "第七百零七条",
+      "quote": "租赁期限六个月以上的，应当采用书面形式。当事人未采用书面形式，无法确定租赁期限的，视为不定期租赁。",
+      "status": "verified",
+      "clause_status": "verified",
+      "elements": [
+        {
+          "name": "书面签署主体（出租人、承租人）",
+          "aliases": [
+            "出租人",
+            "甲方",
+            "出租方"
+          ]
+        },
+        {
+          "name": "书面约定的租赁期限",
+          "aliases": [
+            "租赁期限",
+            "租期",
+            "期限"
+          ]
+        }
+      ]
     }
   ]
 }

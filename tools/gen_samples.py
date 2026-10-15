@@ -50,14 +50,14 @@ FAKE_NAMES = ["张三", "李四", "王五", "赵六", "钱七", "孙八"]
 FAKE_PHONES = ["19900000001", "19900000002", "19900000003", "19900000004"]
 COMPANIES = ["北京安心住房租赁有限公司", "上海宜居住房租赁有限公司"]
 
-CONTRACT_TMPL = """{city}住房租赁合同
+CONTRACT_TMPL = """{title}
 
 出租人（甲方）：{lessor}
 承租人（乙方）：{tenant}
 联系电话：{phone}
 
-第一条 甲方将位于{city}{district}的住房出租给乙方居住使用，建筑面积 {area} 平方米。
-第二条 租赁期限为 {term} 年，自 2026 年 1 月 1 日起至 {end_year} 年 1 月 1 日止。
+第一条 甲方将位于{city}{district}的{subject}出租给乙方居住使用，建筑面积 {area} 平方米。
+第二条 租赁期限为 {term_text}，自 2026 年 1 月 1 日起至 {end_year} 年 {end_month} 月 1 日止。
 第三条 月租金为人民币 {rent} 元，乙方{pay_mode}支付。
 第四条 乙方应向甲方支付押金 {deposit} 个月租金，即人民币 {deposit_amount} 元。
 第五条 甲方{prepay_text}
@@ -67,14 +67,23 @@ CONTRACT_TMPL = """{city}住房租赁合同
 """
 
 
-def _build_sample(rng: SplitMix64, idx: int, city: str) -> dict:
+def _build_sample(
+    rng: SplitMix64, idx: int, city: str, affordable: bool = False, term_months: int = None
+) -> dict:
     is_bj = city == "北京"
     district = rng.choice(["朝阳区", "海淀区", "西城区"]) if is_bj else rng.choice(["浦东新区", "徐汇区", "静安区"])
     tenant = rng.choice(FAKE_NAMES)
     phone = rng.choice(FAKE_PHONES)
     area = rng.choice(["68", "89", "102", "115"])
     rent = rng.choice(["4500", "5000", "6200", "7800"])
-    term = rng.choice(["1", "2", "3", "21"])
+    # term_months 非空时租期按月写（用于触发"保租房租期不得少于一年"的下限违规），
+    # 此时不消耗 RNG 的年租期抽签——该样例恒排在末尾，前序样例的序列不受影响。
+    if term_months is None:
+        term = rng.choice(["1", "2", "3", "21"])
+        term_years = int(term)
+    else:
+        term = None
+        term_years = term_months // 12
     deposit = rng.choice(["1", "1", "2", "3"])
     filing = rng.choice(["30", "30", "15", "45"])
     lodging = rng.choice(["3", "3", "5"])
@@ -85,17 +94,35 @@ def _build_sample(rng: SplitMix64, idx: int, city: str) -> dict:
     prepay = rng.choice(["3", "3", "6"])
     prepay_text = "单次收取租金 %s 个月，乙方应在签约时一次性支付。" % prepay
     pay_mode = "按月" if prepay == "3" else "按季"
-    end_year = 2026 + int(term)
+
+    if term_months is None:
+        term_text = "%s 年" % term
+        end_year = 2026 + int(term)
+        end_month = 1
+    else:
+        # 单位必须写出来：解析层按「租赁期限…N 个月」形态抽取并做月→年换算，
+        # 写成裸数字会抽不到租期（实测：整份样例的租期字段变 absent）。
+        term_text = "%d 个月" % term_months
+        end_year = 2026 + term_months // 12
+        end_month = 1 + term_months % 12
+
+    # 保障性租赁住房样例：合同正文必须出现该字样（解析层据此判定 lease_kind=affordable），
+    # 否则保租房专属规则（押金上限、租期下限）永远只走 skipped 分支，等于没测。
+    subject = "保障性租赁住房" if affordable else "住房"
+    title = "%s%s租赁合同" % (city, "保障性租赁住房" if affordable else "住房")
 
     text = CONTRACT_TMPL.format(
+        title=title,
         city=city,
         lessor=lessor,
         tenant=tenant,
         phone=phone,
         district=district,
         area=area,
-        term=term,
+        subject=subject,
+        term_text=term_text,
         end_year=end_year,
+        end_month=end_month,
         rent=rent,
         pay_mode=pay_mode,
         deposit=deposit,
@@ -112,7 +139,7 @@ def _build_sample(rng: SplitMix64, idx: int, city: str) -> dict:
     party = "enterprise" if enterprise else "individual"
 
     # 全国层：租期 20 年上限
-    expect["CN-LEASE-TERM-MAX"] = "compliant" if int(term) <= 20 else "noncompliant"
+    expect["CN-LEASE-TERM-MAX"] = "compliant" if term_years <= 20 else "noncompliant"
 
     if is_bj:
         if party == "enterprise":
@@ -126,26 +153,54 @@ def _build_sample(rng: SplitMix64, idx: int, city: str) -> dict:
         expect["BJ-FILING-30D"] = "compliant" if int(filing) <= 30 else "noncompliant"
         expect["BJ-LODGING-REG-3WD"] = "compliant" if int(lodging) <= 3 else "noncompliant"
         expect["BJ-CONTRACT-ELEMENT-DEPOSIT"] = "compliant"
+        # 企业备案期限是**外部监管义务**：合同不会载明营业执照领取日 → 企业主体判 unknown
+        # （"没看到"而非"没问题"）；自然人主体原文写了适用限制 → skipped。
+        expect["BJ-ENTERPRISE-FILING-30D"] = "unknown" if party == "enterprise" else "skipped"
+        # 配套办法（京建法〔2024〕8 号）第九条：押金支付/退还条款须载明（本模板恒有）→ compliant
+        expect["BJ-ESCROW-DEPOSIT-TERMS"] = "compliant"
         also["BJ-RENT-INTERVENTION"] = "reference"
+        also["BJ-ESCROW-RENT-SUPERVISION"] = "reference"
     else:
         expect["SH-FILING-30D"] = "compliant" if int(filing) <= 30 else "noncompliant"
-        expect["SH-AFFORDABLE-DEPOSIT-1M"] = "skipped"  # 非保障性租赁住房
+        if affordable:
+            # 保租房专属：押金上限 1 个月、租期下限 1 年（applies_if 命中，走实判）
+            expect["SH-AFFORDABLE-DEPOSIT-1M"] = (
+                "compliant" if int(deposit) <= 1 else "noncompliant"
+            )
+            expect["SH-AFFORDABLE-TERM-MIN-1Y"] = (
+                "compliant" if term_years >= 1 else "noncompliant"
+            )
+        else:
+            expect["SH-AFFORDABLE-DEPOSIT-1M"] = "skipped"  # 非保障性租赁住房
+            expect["SH-AFFORDABLE-TERM-MIN-1Y"] = "skipped"
         if party == "enterprise":
             expect["SH-RENT-DEPOSIT-ESCROW"] = "compliant" if int(deposit) <= 1 else "noncompliant"
             expect["SH-ENTERPRISE-FILING-30D"] = "unknown"
         else:
             expect["SH-RENT-DEPOSIT-ESCROW"] = "skipped"
             expect["SH-ENTERPRISE-FILING-30D"] = "skipped"
+        also["SH-PENALTY-AFFORDABLE-RENT-DEPOSIT"] = "reference"
+        also["SH-BAN-5Y-AFFORDABLE-APPLY"] = "reference"
 
+    term_desc = ("%d 个月" % term_months) if term_months is not None else ("%s 年" % term)
     return {
         "sample_id": "S-%s-%03d" % ("BJ" if is_bj else "SH", idx),
         "city": city,
         "party": party,
+        "lease_kind": "affordable" if affordable else "ordinary",
         "contract_text": text,
         "expect": dict(sorted(expect.items())),
         "also_expect": dict(sorted(also.items())),
-        "notes": "合成样例：假姓名/假手机号；押金%s个月、单次收租%s个月、备案%s日、出租登记%s工作日、退押金%s工作日"
-        % (deposit, prepay, filing, lodging, refund),
+        "notes": "合成样例：假姓名/假手机号；%s；租期%s、押金%s个月、单次收租%s个月、备案%s日、出租登记%s工作日、退押金%s工作日"
+        % (
+            "保障性租赁住房" if affordable else "普通租赁住房",
+            term_desc,
+            deposit,
+            prepay,
+            filing,
+            lodging,
+            refund,
+        ),
     }
 
 
@@ -155,6 +210,12 @@ def build_samples() -> list:
     for i in range(1, 9):
         city = "北京" if i <= 4 else "上海"
         out.append(_build_sample(rng, i, city))
+    # 第 9–10 份：保障性租赁住房（上海）。新增在**末尾**——前 8 份的 RNG 消耗序列不变，
+    # 故 S-BJ-001（README 演示合同）与其余样例逐字节不动。
+    # S-SH-009 租期 3 年（满足下限）；S-SH-010 租期 9 个月（**违反**"不得少于一年"下限）——
+    # 下限类规则必须有违规样例，否则该分支永远只被 compliant 覆盖（等于没测）。
+    out.append(_build_sample(rng, 9, "上海", affordable=True))
+    out.append(_build_sample(rng, 10, "上海", affordable=True, term_months=9))
     return out
 
 

@@ -66,6 +66,50 @@ def test_clause_numbers_derived_from_snapshot():
             assert r.clause in text, "%s 的条款号 %s 不在快照中" % (r.rule_id, r.clause)
 
 
+def test_derive_clause_ignores_inline_cross_references():
+    """条号推导只看**行首**条号，不被正文里的交叉引用劫持（实测缺陷的回归）。
+
+    上海第六十一条的罚则正文以"违反本条例第三十七条第二款规定…"开头；
+    按"任意位置回溯最近的第X条"会把该罚则错认成第三十七条——报告会把罚则挂到
+    错误法条上，比漏报更危险（读者按错条号去核证会核不到）。
+    """
+    from tools_support import load_tool
+
+    mod = load_tool("gen_rulesets")
+    sh = (ROOT / "data" / "knowledge" / "raw" / "sh-housing-rental.txt").read_text(
+        encoding="utf-8"
+    )
+    clause = mod.derive_clause(sh, "收取的租金或者押金不符合要求的", "SRC-SH-HOUSING-RENTAL")
+    assert clause == "第六十一条", "交叉引用劫持了条号推导（得到 %s）" % clause
+
+
+def test_penalty_rule_clause_is_its_own_article():
+    """罚则类规则的条号必须是罚则自身所在条，而非被引用条（端到端锁死）。"""
+    rs = load_ruleset("上海", str(DATA))
+    assert rs.rule_by_id("SH-PENALTY-AFFORDABLE-RENT-DEPOSIT").clause == "第六十一条"
+    assert rs.rule_by_id("SH-BAN-5Y-AFFORDABLE-APPLY").clause == "第五十九条"
+
+
+def test_quote_asserted_against_its_own_source_snapshot():
+    """每条规则的 quote 必须在其**声明的来源**快照中逐字出现。
+
+    北京包同时引用《条例》与配套《暂行办法》两份来源；若拿规则包主快照做断言，
+    配套办法的规则会被误判成"未挂原文"。本测试锁死"按 source_id 取快照"。
+    """
+    escrow = load_ruleset("北京", str(DATA))
+    esc = (ROOT / "data" / "knowledge" / "raw" / "bj-deposit-escrow.txt").read_text(
+        encoding="utf-8"
+    )
+    main = (ROOT / "data" / "knowledge" / "raw" / "bj-housing-rental.txt").read_text(
+        encoding="utf-8"
+    )
+    referenced = [r for r in escrow.rules if r.source_id == "SRC-BJ-DEPOSIT-ESCROW"]
+    assert referenced, "配套办法来源必须至少被 1 条规则引用（否则台账来源是摆设）"
+    for r in referenced:
+        assert r.quote in esc, "%s 的 quote 不在配套办法快照中" % r.rule_id
+        assert r.quote not in main, "%s 的 quote 竟然出现在《条例》快照里（来源标错）" % r.rule_id
+
+
 def test_pending_rule_is_gated_out(tmp_path):
     """数值 status != verified 的条目必须被门控拦下（绝不进判定路径）。"""
     src = json.loads((DATA / "rules" / "ruleset-bj.json").read_text(encoding="utf-8"))
@@ -139,6 +183,50 @@ def test_available_cities(data_dir):
 
     cities = available_cities(data_dir)
     assert set(cities) >= {"北京", "上海", "全国"}
+
+
+def test_m1_coverage_floors():
+    """M1 出口判据：各包条数下限 + 配套来源被真实引用。
+
+    下限写进测试而非只写进交接文档——否则"扩到几条"会随重构静默回退。
+
+    口径按 DoD 原文区分：
+    - 京/沪要求的是**数值规则**条数（value 非空）；
+    - 全国层要求的是**规则**条数（704 要素完整性 / 721 法定补充规则本就没有
+      数值阈值，按"数值规则"计数会把已就位的条款排除在外，口径写错）。
+    """
+    numeric_floors = {"北京": 6, "上海": 5}
+    for city, floor in numeric_floors.items():
+        rs = load_ruleset(city, str(DATA))
+        numeric = [r for r in rs.rules if r.value is not None]
+        assert len(numeric) >= floor, (
+            "%s 数值规则 %d 条 < 下限 %d 条" % (city, len(numeric), floor)
+        )
+
+    cn = load_ruleset("全国", str(DATA))
+    assert len(cn.rules) >= 3, "全国层规则 %d 条 < 下限 3 条" % len(cn.rules)
+    # 704/705/721 是 M0 已就位的三条，M1 复核须仍在（防被误删）
+    for rid in ("CN-ELEMENT-COMPLETENESS", "CN-LEASE-TERM-MAX", "CN-RENT-PAY-PERIOD"):
+        assert cn.rule_by_id(rid) is not None, "全国层既有规则 %s 缺失" % rid
+
+    # 台账登记但从未被引用的来源 = 摆设；M1 要求它至少挂 1 条规则
+    bj = load_ruleset("北京", str(DATA))
+    assert any(r.source_id == "SRC-BJ-DEPOSIT-ESCROW" for r in bj.rules), (
+        "SRC-BJ-DEPOSIT-ESCROW 未被任何规则引用"
+    )
+
+
+def test_every_rule_carries_verification_status():
+    """题面模块②：每条数值规则须携带查证状态（✅/⬜）。
+
+    缺锚点（无 clause/quote）或状态非 verified 的规则**不得被引擎加载生效**——
+    此处断言规则包里每条都齐备且为 verified（门控层另有 pending 拦截测试）。
+    """
+    for city in ("北京", "上海", "全国"):
+        rs = load_ruleset(city, str(DATA))
+        for r in rs.rules:
+            assert r.status == "verified", "%s 数值核对状态非 verified" % r.rule_id
+            assert r.clause_status == "verified", "%s 条款核对状态非 verified" % r.rule_id
 
 
 def test_data_dir_locatable():

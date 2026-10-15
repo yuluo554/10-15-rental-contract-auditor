@@ -40,6 +40,7 @@ MANIFEST = ROOT / "data" / "knowledge" / "MANIFEST.json"
 CN = "SRC-CN-CIVIL-CODE"
 BJ = "SRC-BJ-HOUSING-RENTAL"
 SH = "SRC-SH-HOUSING-RENTAL"
+ESCROW = "SRC-BJ-DEPOSIT-ESCROW"
 
 SPECS = {
     "cn": {
@@ -114,6 +115,34 @@ SPECS = {
                     "应当在租赁期限届满时支付；租赁期限一年以上的，应当在每届满一年时支付，"
                     "剩余期限不满一年的，应当在租赁期限届满时支付。"
                 ),
+            },
+            {
+                # M1 复核新增（HANDOFF-M1 §2.3）。
+                # 形态选择：书面形式是"合同文本形态"义务，不是数值义务——用与 704 条同形的
+                # 定性检查项承载（要素表即"书面合同应呈现的形态标记"），无需引擎新增判定分支。
+                # 输入为可识别书面合同 → 要素齐备 → compliant；输入不可识别为合同 →
+                # 引擎判 unknown（"没看到"而非"没采用书面形式"），方向保守不冤枉用户。
+                "rule_id": "CN-WRITTEN-FORM-6M",
+                "title": "租赁期限六个月以上的应采用书面形式",
+                "check_type": "element_completeness",
+                "scope": "check",
+                "param": "has_elements",
+                "op": None,
+                "value": None,
+                "unit": None,
+                "applies_if": {"party": ["any"]},
+                "effect": "standing_obligation",
+                "severity": "low",
+                "source_id": CN,
+                "anchor": "租赁期限六个月以上的，应当采用书面形式",
+                "quote": (
+                    "租赁期限六个月以上的，应当采用书面形式。当事人未采用书面形式，"
+                    "无法确定租赁期限的，视为不定期租赁。"
+                ),
+                "elements": [
+                    {"name": "书面签署主体（出租人、承租人）", "aliases": ["出租人", "甲方", "出租方"]},
+                    {"name": "书面约定的租赁期限", "aliases": ["租赁期限", "租期", "期限"]},
+                ],
             },
         ],
     },
@@ -233,6 +262,11 @@ SPECS = {
                 "source_id": BJ,
                 "anchor": "押金数额一般不超过一个月租金",
                 "quote": "租金和押金数额、支付期限和方式，押金数额一般不超过一个月租金",
+                # M1 复核结论：**有意**只挂押金相关的两项，不铺开第十四条全 10 项。
+                # 理由：第十四条的通盘要素完整性已由全国层 CN-ELEMENT-COMPLETENESS（704 条）
+                # 承担；本条的价值在于北京特有的"押金数额一般不超过一个月租金"这半句，
+                # 故要素清单与之对齐。铺开成全 10 项会与 704 条重复判定同一件事，
+                # 同因双报（一个缺失被记两次）反而降低可读性。
                 "elements": [
                     {"name": "押金数额", "aliases": ["押金", "保证金"]},
                     {"name": "支付期限和方式", "aliases": ["支付", "付款", "交付方式"]},
@@ -255,6 +289,75 @@ SPECS = {
                 "quote": (
                     "住房租金明显上涨或者有可能明显上涨时，市人民政府可以采取涨价申报、"
                     "限定租金或者租金涨幅等价格干预措施，稳定租金水平"
+                ),
+            },
+            {
+                # 台账 data/README.md §1 #2 承诺的 6 条数值规则之一（此前缺失）。
+                # 属企业外部监管义务（非合同条款），合同通常不载明 → 判 unknown，
+                # 正是"没看到 ≠ 没问题"的形态。
+                "rule_id": "BJ-ENTERPRISE-FILING-30D",
+                "title": "住房租赁企业应自领取营业执照之日起三十日内备案",
+                "check_type": "numeric_limit",
+                "scope": "calc",
+                "param": "enterprise_filing_days",
+                "op": "<=",
+                "value": 30,
+                "unit": "日",
+                "applies_if": {"party": ["enterprise"]},
+                "effect": "periodic_obligation",
+                "severity": "medium",
+                "source_id": BJ,
+                "anchor": "住房租赁企业应当自领取营业执照之日起三十日内向所在地的区住房和城乡建设或者房屋主管部门备案",
+                "quote": (
+                    "住房租赁企业应当自领取营业执照之日起三十日内向所在地的区住房和城乡建设"
+                    "或者房屋主管部门备案。"
+                ),
+            },
+            {
+                # 配套办法（京建法〔2024〕8 号）第九条：押金支付与退还的**合同内容**义务。
+                # 与第十四条（条例）的押金要素检查分属两份来源，故并存不重复。
+                "rule_id": "BJ-ESCROW-DEPOSIT-TERMS",
+                "title": "押金应按合同约定的支付时间、金额存入托管账户并按约定时间方式退还",
+                "check_type": "element_completeness",
+                "scope": "check",
+                "param": "has_deposit_clause",
+                "op": None,
+                "value": None,
+                "unit": None,
+                "applies_if": {"party": ["any"]},
+                "effect": "standing_obligation",
+                "severity": "medium",
+                "source_id": ESCROW,
+                "anchor": "押金应当按住房租赁合同约定的押金支付时间、金额存入用于押金托管的账户",
+                "quote": (
+                    "押金应当按住房租赁合同约定的押金支付时间、金额存入用于押金托管的账户，"
+                    "并按合同约定的时间和方式退还。"
+                ),
+                "elements": [
+                    {"name": "押金支付时间与金额", "aliases": ["押金", "保证金"]},
+                    {"name": "押金退还时间与方式", "aliases": ["退还", "返还", "退回"]},
+                ],
+            },
+            {
+                # 配套办法第十三条：预收租金超三个月的**条件触发**义务（须全额入监管账户）。
+                # 归条件触发栏：原文并不禁止超收，而是"超了就要监管"——判成"违反上限"
+                # 是把条件义务说成禁止性义务（失真）。
+                "rule_id": "BJ-ESCROW-RENT-SUPERVISION",
+                "title": "预收租金超过三个月租金的，全部租金应存入租金监管账户",
+                "check_type": "numeric_limit",
+                "scope": "quota",
+                "param": "rent_prepay_months",
+                "op": "<=",
+                "value": 3,
+                "unit": "月租金",
+                "applies_if": {"party": ["enterprise"]},
+                "effect": "conditional_institution",
+                "severity": "medium",
+                "source_id": ESCROW,
+                "anchor": "全部租金应当按合同约定的租金支付时间、金额存入用于租金监管的账户",
+                "quote": (
+                    "住房租赁合同约定预收租金数额超过3个月租金的，全部租金应当按合同约定的"
+                    "租金支付时间、金额存入用于租金监管的账户。"
                 ),
             },
         ],
@@ -339,6 +442,69 @@ SPECS = {
                     "向区房屋管理部门备案。"
                 ),
             },
+            {
+                # 台账 data/README.md §1 #3 承诺的保租房条款。
+                # op 取 ">="：**下限**义务（租期不得少于一年），与上限类规则的边界
+                # 断言方向相反——B3 已按 op 分派两个方向，此处正好覆盖"下限"形态。
+                "rule_id": "SH-AFFORDABLE-TERM-MIN-1Y",
+                "title": "保障性租赁住房租赁期限不得少于一年",
+                "check_type": "numeric_limit",
+                "scope": "calc",
+                "param": "lease_term_years",
+                "op": ">=",
+                "value": 1,
+                "unit": "年",
+                "applies_if": {"party": ["any"], "lease_kind": ["affordable"]},
+                "effect": "standing_obligation",
+                "severity": "medium",
+                "source_id": SH,
+                "anchor": "保障性租赁住房租赁期限不得少于一年",
+                "quote": "除承租人另有要求的，保障性租赁住房租赁期限不得少于一年。",
+            },
+            {
+                # 台账 §1 #3 承诺的罚则（5 万–20 万）。罚则不针对租客合同判定 → quota 栏。
+                # 取"下限"数值作 value（5 万），op 用 ">="，边界断言方向为下限。
+                "rule_id": "SH-PENALTY-AFFORDABLE-RENT-DEPOSIT",
+                "title": "收取租金或押金不符合保租房要求的，处五万元以上二十万元以下罚款",
+                "check_type": "numeric_limit",
+                "scope": "quota",
+                "param": None,
+                "op": ">=",
+                "value": 50000,
+                "unit": "元",
+                "applies_if": {"party": ["any"]},
+                "effect": "conditional_institution",
+                "severity": "advisory",
+                "source_id": SH,
+                "anchor": "收取的租金或者押金不符合要求的",
+                "quote": (
+                    "违反本条例第三十七条第二款规定，收取的租金或者押金不符合要求的，"
+                    "由区房屋管理部门责令限期改正，处五万元以上二十万元以下罚款。"
+                ),
+            },
+            {
+                # 台账 §1 #3 承诺的"骗保 5 年禁申请保障房"。
+                # 这是**行政后果**而非合同义务 → effect=conditional_institution 走 quota 栏
+                # （HANDOFF-M1 §2.2 明示口径）。
+                "rule_id": "SH-BAN-5Y-AFFORDABLE-APPLY",
+                "title": "转租、出借保障性租赁住房的，禁止五年内再次申请本市各类保障性住房",
+                "check_type": "text_prohibition",
+                "scope": "quota",
+                "param": None,
+                "op": None,
+                "value": None,
+                "unit": None,
+                "applies_if": {"party": ["any"]},
+                "effect": "conditional_institution",
+                "severity": "advisory",
+                "source_id": SH,
+                "anchor": "并禁止五年内再次申请本市各类保障性住房",
+                "quote": (
+                    "违反本条例第三十五条第一款第三项规定，承租人转租、出借保障性租赁住房的，"
+                    "由区房屋管理部门责令限期改正，处一万元以上五万元以下罚款，"
+                    "并禁止五年内再次申请本市各类保障性住房。"
+                ),
+            },
         ],
     },
 }
@@ -352,22 +518,31 @@ THRESHOLDS = {
     "max_runtime_seconds": 60,
 }
 
-_CLAUSE = re.compile(r"第([一二三四五六七八九十百零〇]+)条")
+# 条号只在**行首**成立：官方快照里条号一律起于行首（京/沪条例的条号独占一行，
+# 民法典的条号后接正文但同样起于行首）。
+_CLAUSE = re.compile(r"^[ \t\u3000]*第([一二三四五六七八九十百零〇]+)条", re.M)
 
 
 def derive_clause(snapshot_text: str, anchor: str, source_id: str) -> str:
-    """从快照推导条款号：定位 anchor，回溯到最近的 `第X条`。
+    """从快照推导条款号：定位 anchor，回溯到最近的**行首** `第X条`。
 
     绝不手抄——手抄条款号不可复现（实测同一罚则短语人工定位出两个不同条号）。
+
+    为什么限定行首：正文里的**交叉引用**（"违反本条例第三十七条第二款规定…"）
+    也是 `第X条` 形态，若按"任意位置回溯"会把罚则自身的条号错认成被引用的条号
+    （M1 实测：上海第六十一条的罚则被推导成第三十七条、第五十九条的罚则被推导成
+    第三十五条——条号错认会让报告把罚则挂到错误法条上，比漏报更危险）。
     """
     pos = snapshot_text.find(anchor)
     if pos < 0:
         raise ValueError("anchor 未在快照中逐字出现: [%s] (%s)" % (anchor[:40], source_id))
     best = None
-    for m in _CLAUSE.finditer(snapshot_text, 0, pos + 1):
+    for m in _CLAUSE.finditer(snapshot_text):
+        if m.start() >= pos:
+            break
         best = m
     if best is None:
-        raise ValueError("anchor 之前无条款号: [%s]" % anchor[:40])
+        raise ValueError("anchor 之前无行首条款号: [%s]" % anchor[:40])
     return "第%s条" % best.group(1)
 
 
@@ -380,7 +555,6 @@ def build_ruleset(key: str) -> dict:
     snap_path = RAW / spec["snapshot"]
     if not snap_path.is_file():
         raise FileNotFoundError("快照缺失，先跑 tools/fetch_sources.py: %s" % snap_path)
-    text = snap_path.read_text(encoding="utf-8")
     manifest = load_manifest()
     rel_snap = "data/knowledge/raw/%s" % spec["snapshot"]
     snap_meta = next(
@@ -389,15 +563,29 @@ def build_ruleset(key: str) -> dict:
     if snap_meta is None:
         raise ValueError("台账未登记快照: %s" % rel_snap)
 
+    # 快照正文按 source_id 索引：**一条规则的 quote 必须在它自己声明的来源快照里
+    # 逐字出现**，而不是在规则包的主快照里。北京包同时引用《条例》与配套《暂行办法》
+    # 两份来源，用主快照做断言会把配套办法的规则误判成"未挂原文"。
+    snap_text = {}
+    for s in manifest["sources"]:
+        p = ROOT / s["snapshot"]
+        if p.is_file():
+            snap_text[s["source_id"]] = p.read_text(encoding="utf-8")
+
     rules = []
     for r in spec["rules"]:
         quote = r["quote"]
-        # 硬断言：法条原文逐字出现在官方快照中
-        if quote not in text:
+        sid = r["source_id"]
+        own = snap_text.get(sid)
+        if own is None:
+            raise ValueError("规则 %s 声明的来源无快照: %s" % (r["rule_id"], sid))
+        # 硬断言：法条原文逐字出现在**其声明的**官方快照中
+        if quote not in own:
             raise ValueError(
-                "规则 %s 的 quote 未在快照中逐字出现: %s" % (r["rule_id"], quote[:50])
+                "规则 %s 的 quote 未在快照 %s 中逐字出现: %s"
+                % (r["rule_id"], sid, quote[:50])
             )
-        clause = derive_clause(text, r["anchor"], r["source_id"])
+        clause = derive_clause(own, r["anchor"], sid)
         entry = {
             "rule_id": r["rule_id"],
             "title": r["title"],
