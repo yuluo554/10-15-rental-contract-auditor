@@ -2,6 +2,10 @@
 
 [![CI](https://github.com/yuluo554/10-15-rental-contract-auditor/actions/workflows/ci.yml/badge.svg)](https://github.com/yuluo554/10-15-rental-contract-auditor/actions/workflows/ci.yml)
 
+**状态**：`v0.1.0` 已发布（[Release](https://github.com/yuluo554/10-15-rental-contract-auditor/releases/tag/v0.1.0)）。
+CI 在 windows（py3.8 / 3.12）与 ubuntu（py3.12）矩阵 + `package` job（真构建 + 产物级验收）
+全绿。Windows x64 免安装发行包见 Release 附件（CLI / GUI 双入口）。
+
 > **把分散在民法典与城市条例里的数值规则，做成可核验的合同体检；每条判定挂法条原文锚点。**
 >
 > 租客不是律师。押金上限、租金收取上限、备案期限、退还期限这些"硬数字"规则，
