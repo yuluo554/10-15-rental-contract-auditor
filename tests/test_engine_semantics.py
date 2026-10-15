@@ -9,7 +9,10 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from rca.engine.pipeline import compute_result
+from rca.engine.ruleset import load_ruleset
 from rca.model import (
     STATUS_COMPLIANT,
     STATUS_NONCOMPLIANT,
@@ -17,6 +20,8 @@ from rca.model import (
     STATUS_SKIPPED,
     STATUS_UNKNOWN,
 )
+
+DATA = Path(__file__).resolve().parents[1] / "data"
 
 
 def _by_id(result):
@@ -220,3 +225,41 @@ def test_escrow_source_rules_present(bj_enterprise, data_dir):
     assert f["BJ-ESCROW-DEPOSIT-TERMS"].source_id == "SRC-BJ-DEPOSIT-ESCROW"
     trig = {t.rule_id: t for t in result.conditional_triggers}
     assert trig["BJ-ESCROW-RENT-SUPERVISION"].source_id == "SRC-BJ-DEPOSIT-ESCROW"
+
+
+def test_rent_pay_period_missing_is_unknown_not_noncompliant(data_dir):
+    """M1 复核结论（HANDOFF-M1 §2.3）：721 条"未约定支付期限"保持 unknown 定性。
+
+    民法典 721 条是**法定补充规则**——未约定时由法律补充，不是当事人的违法行为。
+    判 `noncompliant` 会把"法律已经替你规定了"说成"你违规了"（假 noncompliant，冤枉用户）。
+    保持 `unknown` + 理由写明"非法定违反，仅提示"，让读者知道该提示人工确认。
+    """
+    text = """北京市住房租赁合同
+
+出租人（甲方）：北京安心住房租赁有限公司
+承租人（乙方）：张三
+联系电话：19900000001
+
+第一条 甲方将位于北京市朝阳区的住房出租给乙方居住使用，建筑面积 89 平方米。
+第二条 租赁期限为 3 年。
+第三条 月租金为人民币 5000 元。
+第四条 乙方应向甲方支付押金 1 个月租金。
+"""
+    result = compute_result(text, "北京", data_dir=data_dir)
+    f = _by_id(result)["CN-RENT-PAY-PERIOD"]
+    assert f.status == STATUS_UNKNOWN, "法定补充规则不得判成 noncompliant"
+    assert "法定补充" in f.reason
+
+
+def test_bj_article14_elements_scope_is_deliberate(data_dir):
+    """M1 复核结论（HANDOFF-M1 §2.1）：北京第十四条要素清单**有意**只挂押金两项。
+
+    第十四条的通盘要素完整性由全国层 704 条承担；本条价值在北京特有的
+    "押金数额一般不超过一个月租金"半句。铺开成全 10 项会与 704 条重复判定同一件事
+    （同一缺失被记两次），故锁定当前范围，防止后续"顺手补全"造成双报。
+    """
+    rs = load_ruleset("北京", str(DATA))
+    rule = rs.rule_by_id("BJ-CONTRACT-ELEMENT-DEPOSIT")
+    assert rule is not None
+    names = [e["name"] for e in rule.elements]
+    assert names == ["押金数额", "支付期限和方式"], "要素清单范围被改动：%s" % names

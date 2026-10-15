@@ -15,7 +15,7 @@
 | 全国层 4 条 | ✅ | `data/rules/ruleset-cn.json`（`23a667bdd69ba94a`） |
 | 配套办法来源被真实引用 | ✅ | 京包 2 条规则挂 `SRC-BJ-DEPOSIT-ESCROW`（第九条 / 第十三条） |
 | 合成样例 10 份（含 2 份保租房） | ✅ | `data/samples/samples.json`（`58ab1ae13111efef`）+ `demo-contract-bj.txt` |
-| 测试全绿 | ✅ | **143 项**，双解释器（3.8.8 / 3.12.10） |
+| 测试全绿 | ✅ | **145 项**，双解释器（3.8.8 / 3.12.10） |
 | 生成器冻结 | ✅ | `gen_rulesets.py --check` / `gen_samples.py --check` / `fetch_sources.py --check` 三者均 exit 0 |
 | 守门 | ✅ | `check_literals.py`（+`--selftest`）/ `audit_desensitize.py selftest|tracked` 均 exit 0（HARD 0） |
 | 基准三套件 | ✅ | `BENCH_OK`（B1 90/90、B2 17/17 误报 0、B3 14/14） |
@@ -25,7 +25,7 @@
 
 | 通路 | 命令 | 结果 |
 |---|---|---|
-| 全量测试 ×2 解释器 | `py -3.12 -m pytest -q` / `py -3.8 -m pytest -q` | **143 项全绿**，exit 0 |
+| 全量测试 ×2 解释器 | `py -3.12 -m pytest -q` / `py -3.8 -m pytest -q` | **145 项全绿**，exit 0 |
 | 快照冻结 | `tools/fetch_sources.py --check` | `SOURCES_FROZEN_OK` |
 | 规则包冻结 | `tools/gen_rulesets.py --check` | `RULESETS_FROZEN_OK` |
 | 样例冻结 | `tools/gen_samples.py --check` | `SAMPLES_FROZEN_OK` |
@@ -98,6 +98,13 @@
 - **未观测时丢掉限值**：合同没写某要素时，报告"规则限值"列显示 `<= —`，读者会误以为
   该条没有数值口径。现照挂 `limit`（`<= 30`）。回归：`test_unobserved_numeric_rule_still_reports_its_limit`。
 
+### 2.4 HANDOFF-M1 §2 的两个"复核项"——M1 已闭环（结论已锁进测试）
+
+| HANDOFF-M1 原任务 | 复核结论 | 锁定测试 |
+|---|---|---|
+| §2.1 复核 `BJ-CONTRACT-ELEMENT-DEPOSIT`（第十四条）要素清单是否该扩 | **不扩，有意保持"押金数额 + 支付期限和方式"两项**。第十四条的通盘要素完整性已由全国层 704 条（`CN-ELEMENT-COMPLETENESS`，6 项）承担；本条的价值在北京特有的"押金数额一般不超过一个月租金"半句。铺开成全 10 项会与 704 条**重复判定同一件事**（同一缺失被记两次），可读性反而下降 | `test_bj_article14_elements_scope_is_deliberate` |
+| §2.3 复核 721 条法定补充规则的判定形态（现为 `rent_pay_period_declared` 定性） | **保持 `unknown`**。721 条是**法定补充规则**——未约定时由法律补充，不是当事人的违法行为。判 `noncompliant` 会把"法律已经替你规定了"说成"你违规了"（假 noncompliant，冤枉用户）。`unknown` + 理由写明"非法定违反，仅提示"，方向保守且如实 | `test_rent_pay_period_missing_is_unknown_not_noncompliant` |
+
 ---
 
 ## 3. M2 待办（按优先级）
@@ -151,7 +158,7 @@ M0 已把解析层的**骨架**建好（`parser/clauses.py` 切分 + `parser/ext
    这是最危险的一种（看着成功、实则错位）。
 
 **每改一处解析层的固定动作**：
-1. `py -3.12 -X utf8 -m pytest -q`（**143 项必须仍全绿**；双解释器各跑一遍）
+1. `py -3.12 -X utf8 -m pytest -q`（**145 项必须仍全绿**；双解释器各跑一遍）
 2. `py -3.12 -X utf8 -m rca.cli bench`（三套件必须仍达标；B1 分母会随字段增减变化）
 3. **若改了抽取字段或样例正文** → 须同步 `tools/gen_samples.py` 的 `expect` 推导并重跑生成器
    （`gen_samples.py --check` → `SAMPLES_FROZEN_OK`）
@@ -194,7 +201,7 @@ M0 已把解析层的**骨架**建好（`parser/clauses.py` 切分 + `parser/ext
   生成器一律 `write_bytes`。
 - **本机双解释器都可用**：`py -0` 列出 3.8.8-64 与 3.12-64，两者都装了 pytest + PySide6 + rca（editable）。
 - **`py -3.12 -m pip install -e .` 会写 `src/rca.egg-info/`**：已被 .gitignore 覆盖。
-- **基准/测试跑得快**（bench 0.03s、143 项测试约 4s）：每改一处都该跑全量。
+- **基准/测试跑得快**（bench 0.03s、145 项测试约 4s）：每改一处都该跑全量。
 - **`rca report` 在演示样例上退出码是 1**（检出不符合，既定语义）——用 `&&` 串联命令会在此断链，
   脚本里请用 `;` 或显式判断。
 
@@ -225,7 +232,7 @@ M0 已把解析层的**骨架**建好（`parser/clauses.py` 切分 + `parser/ext
 
 ```bash
 # 验证（M2 每改一处都跑）
-py -3.12 -X utf8 -m pytest -q                         # 143 项（双解释器各跑一遍）
+py -3.12 -X utf8 -m pytest -q                         # 145 项（双解释器各跑一遍）
 py -3.12 -X utf8 -m rca.cli bench                     # 三套件 → BENCH_OK
 py -3.12 -X utf8 tools/check_literals.py --selftest   # 门禁自检
 py -3.12 -X utf8 tools/audit_desensitize.py tracked   # 脱敏（HARD 0）
