@@ -16,7 +16,7 @@
 | 规则包（三份） | ✅ | `data/rules/ruleset-{cn,bj,sh}.json`（生成器冻结产物） |
 | 合成样例 | ✅ | `data/samples/samples.json`（8 份）+ `demo-contract-bj.txt` |
 | 守门（零字面量/脱敏/EOL/冻结/CI/README） | ✅ | `tools/` + `tests/` |
-| 测试全绿 | ✅ | 131 项，双解释器（3.8.8 / 3.12.10） |
+| 测试全绿 | ✅ | 132 项，双解释器（3.8.8 / 3.12.10） |
 | CI workflow | ✅ 已写 | `.github/workflows/ci.yml`（**未接远端，CI 待首推验证**） |
 
 **M0 已实现的核心能力**（M1 在其上扩数据）：
@@ -27,6 +27,33 @@
 - 全国层叠加：城市包自动叠加民法典规则（同名 rule_id 城市优先）
 - 义务类型分栏：`standing_obligation` / `periodic_obligation` / `conditional_institution`
 - 报告双轨：Markdown + XLSX，同输入逐字节一致；溯源完整性导出前断言
+
+### M0 本地等价校验记录（未接远端，CI 待首推验证）
+
+**可本机实跑的通路（逐条实测，取真退出码）**：
+
+| 通路 | 命令 | 结果 |
+|---|---|---|
+| 全量测试 ×2 解释器 | `py -3.12 -m pytest -q` / `py -3.8 -m pytest -q` | 132 项全绿，exit 0 |
+| 快照冻结 | `tools/fetch_sources.py --check` | exit 0 |
+| 规则包冻结 | `tools/gen_rulesets.py --check` | `RULESETS_FROZEN_OK` |
+| 样例冻结 | `tools/gen_samples.py --check` | `SAMPLES_FROZEN_OK` |
+| 零字面量门禁 + 自检 | `tools/check_literals.py` / `--selftest` | exit 0 / `LITERAL_GATE_SELFTEST_OK` |
+| 脱敏审计自检 + 已跟踪 + 历史 | `audit_desensitize.py selftest` / `tracked` / `history` | exit 0（HARD 0，历史探活通过） |
+| 基准三套件 | `rca bench` | `BENCH_OK`（B1 72/72、B2 8/8 误报 0、B3 10/10） |
+| CLI 退出码契约 | `check`(1) / `rules`(0) / 缺文件(2) / 未知城市(2) / `bench --only NOPE`(2) | 逐条符合明示语义 |
+| 冻结态自检（源码态） | `rca selftest --out` | exit 0；`frozen=false`、`data_dir_in_dist=null`（非冻结态不误判） |
+| **干净环境**（`git archive` 树 + 全新 venv 照 README 装 `.[dev,gui]`） | `pytest -q` + 上述工具链 | **132 项全绿，收集数与 dev 完全一致** |
+
+**不可本机实跑的通路（显式标注"待首推验证"）**：CI 矩阵的环境差异
+（cp1252 编码、ubuntu 缺 Qt 系统库、actions/checkout 行为）。
+M0 已在开发期前置 `eol=lf` / `fetch-depth: 0` / extras 齐 / 编码三层加固，
+但**不保证首跑全绿**——M6 须预算"多轮诊断"。
+
+**干净环境实测抓到的缺陷（已修 + 已加回归）**：`git archive` 导出的树没有 `.git`，
+脱敏审计退回文件系统遍历后扫到就地建的 `.venv/Lib/site-packages/**`，
+第三方包自带邮箱成片误报（48 项假 HARD）。修复 = 按**特征**（`pyvenv.cfg` /
+`Scripts/activate`）剪枝，不按名字；回归测试故意用非 `.venv` 名验证按特征判定。
 
 ---
 
@@ -55,7 +82,7 @@ M0 已把**机制**建好（生成器 + 逐字断言 + 门控），M1 要把它*
 3. `py -3.12 -X utf8 tools/gen_rulesets.py --check`（`RULESETS_FROZEN_OK`）
 4. **若新规则会被样例命中** → 同步改 `tools/gen_samples.py` 的 `expect` 推导，重跑 `gen_samples.py`
 5. `py -3.12 -X utf8 -m rca.cli bench`（三套件必须仍达标）
-6. `py -3.12 -X utf8 -m pytest -q`（131 项必须仍全绿）
+6. `py -3.12 -X utf8 -m pytest -q`（132 项必须仍全绿）
 
 ---
 
@@ -88,7 +115,7 @@ M0 已把**机制**建好（生成器 + 逐字断言 + 门控），M1 要把它*
   生成器一律 `write_bytes`。
 - **本机双解释器都可用**：`py -0` 列出 3.8.8-64 与 3.12-64，两者都装了 pytest + PySide6 + rca（editable）。
 - **`py -3.12 -m pip install -e .` 会写 `src/rca.egg-info/`**：已被 .gitignore 覆盖。
-- **基准/测试跑得快**（bench 0.02s、131 项测试约 10s）：每改一处都该跑全量。
+- **基准/测试跑得快**（bench 0.02s、132 项测试约 10s）：每改一处都该跑全量。
 
 ---
 
@@ -122,7 +149,7 @@ py -3.12 -X utf8 tools/gen_rulesets.py --check        # → RULESETS_FROZEN_OK
 py -3.12 -X utf8 tools/gen_samples.py --check         # → SAMPLES_FROZEN_OK
 
 # 验证
-py -3.12 -X utf8 -m pytest -q                         # 131 项（双解释器各跑一遍）
+py -3.12 -X utf8 -m pytest -q                         # 132 项（双解释器各跑一遍）
 py -3.12 -X utf8 -m rca.cli bench                     # 三套件 → BENCH_OK
 py -3.12 -X utf8 tools/check_literals.py --selftest   # 门禁自检
 py -3.12 -X utf8 tools/audit_desensitize.py tracked   # 脱敏（HARD 0）
