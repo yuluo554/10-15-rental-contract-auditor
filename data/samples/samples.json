@@ -14,12 +14,28 @@
       "BJ-FILING-30D": "compliant",
       "BJ-LODGING-REG-3WD": "noncompliant",
       "BJ-RENT-PREPAY-MAX-3M": "compliant",
-      "CN-LEASE-TERM-MAX": "compliant"
+      "CN-ELEMENT-COMPLETENESS": "compliant",
+      "CN-LEASE-TERM-MAX": "compliant",
+      "CN-RENT-PAY-PERIOD": "compliant",
+      "CN-WRITTEN-FORM-6M": "compliant"
     },
     "also_expect": {
       "BJ-ESCROW-RENT-SUPERVISION": "reference",
       "BJ-RENT-INTERVENTION": "reference"
     },
+    "expect_fields": {
+      "deposit_months": "1.00",
+      "deposit_refund_workdays": "3.00",
+      "filing_days": "15.00",
+      "has_deposit_clause": true,
+      "lease_term_years": "3.00",
+      "lodging_reg_workdays": "5.00",
+      "rent_pay_period_declared": true,
+      "rent_prepay_months": "3.00"
+    },
+    "expect_absent_fields": [
+      "enterprise_filing_days"
+    ],
     "notes": "合成样例：假姓名/假手机号；普通租赁住房；租期3 年、押金1个月、单次收租3个月、备案15日、出租登记5工作日、退押金3工作日"
   },
   {
@@ -37,12 +53,28 @@
       "BJ-FILING-30D": "compliant",
       "BJ-LODGING-REG-3WD": "compliant",
       "BJ-RENT-PREPAY-MAX-3M": "skipped",
-      "CN-LEASE-TERM-MAX": "compliant"
+      "CN-ELEMENT-COMPLETENESS": "compliant",
+      "CN-LEASE-TERM-MAX": "compliant",
+      "CN-RENT-PAY-PERIOD": "compliant",
+      "CN-WRITTEN-FORM-6M": "compliant"
     },
     "also_expect": {
       "BJ-ESCROW-RENT-SUPERVISION": "reference",
       "BJ-RENT-INTERVENTION": "reference"
     },
+    "expect_fields": {
+      "deposit_months": "2.00",
+      "deposit_refund_workdays": "7.00",
+      "filing_days": "30.00",
+      "has_deposit_clause": true,
+      "lease_term_years": "3.00",
+      "lodging_reg_workdays": "3.00",
+      "rent_pay_period_declared": true,
+      "rent_prepay_months": "3.00"
+    },
+    "expect_absent_fields": [
+      "enterprise_filing_days"
+    ],
     "notes": "合成样例：假姓名/假手机号；普通租赁住房；租期3 年、押金2个月、单次收租3个月、备案30日、出租登记3工作日、退押金7工作日"
   },
   {
@@ -60,12 +92,28 @@
       "BJ-FILING-30D": "compliant",
       "BJ-LODGING-REG-3WD": "compliant",
       "BJ-RENT-PREPAY-MAX-3M": "compliant",
-      "CN-LEASE-TERM-MAX": "compliant"
+      "CN-ELEMENT-COMPLETENESS": "compliant",
+      "CN-LEASE-TERM-MAX": "compliant",
+      "CN-RENT-PAY-PERIOD": "compliant",
+      "CN-WRITTEN-FORM-6M": "compliant"
     },
     "also_expect": {
       "BJ-ESCROW-RENT-SUPERVISION": "reference",
       "BJ-RENT-INTERVENTION": "reference"
     },
+    "expect_fields": {
+      "deposit_months": "1.00",
+      "deposit_refund_workdays": "7.00",
+      "filing_days": "15.00",
+      "has_deposit_clause": true,
+      "lease_term_years": "1.00",
+      "lodging_reg_workdays": "3.00",
+      "rent_pay_period_declared": true,
+      "rent_prepay_months": "3.00"
+    },
+    "expect_absent_fields": [
+      "enterprise_filing_days"
+    ],
     "notes": "合成样例：假姓名/假手机号；普通租赁住房；租期1 年、押金1个月、单次收租3个月、备案15日、出租登记3工作日、退押金7工作日"
   },
   {
@@ -83,12 +131,28 @@
       "BJ-FILING-30D": "compliant",
       "BJ-LODGING-REG-3WD": "compliant",
       "BJ-RENT-PREPAY-MAX-3M": "compliant",
-      "CN-LEASE-TERM-MAX": "compliant"
+      "CN-ELEMENT-COMPLETENESS": "compliant",
+      "CN-LEASE-TERM-MAX": "compliant",
+      "CN-RENT-PAY-PERIOD": "compliant",
+      "CN-WRITTEN-FORM-6M": "compliant"
     },
     "also_expect": {
       "BJ-ESCROW-RENT-SUPERVISION": "reference",
       "BJ-RENT-INTERVENTION": "reference"
     },
+    "expect_fields": {
+      "deposit_months": "2.00",
+      "deposit_refund_workdays": "3.00",
+      "filing_days": "30.00",
+      "has_deposit_clause": true,
+      "lease_term_years": "3.00",
+      "lodging_reg_workdays": "3.00",
+      "rent_pay_period_declared": true,
+      "rent_prepay_months": "3.00"
+    },
+    "expect_absent_fields": [
+      "enterprise_filing_days"
+    ],
     "notes": "合成样例：假姓名/假手机号；普通租赁住房；租期3 年、押金2个月、单次收租3个月、备案30日、出租登记3工作日、退押金3工作日"
   },
   {
@@ -98,7 +162,10 @@
     "lease_kind": "ordinary",
     "contract_text": "上海住房租赁合同\n\n出租人（甲方）：个人出租（钱七）\n承租人（乙方）：钱七\n联系电话：19900000004\n\n第一条 甲方将位于上海静安区的住房出租给乙方居住使用，建筑面积 89 平方米。\n第二条 租赁期限为 21 年，自 2026 年 1 月 1 日起至 2047 年 1 月 1 日止。\n第三条 月租金为人民币 4500 元，乙方按月支付。\n第四条 乙方应向甲方支付押金 2 个月租金，即人民币 9000 元。\n第五条 甲方单次收取租金 3 个月，乙方应在签约时一次性支付。\n第六条 甲方应自合同订立之日起 15 日内办理登记备案，并自合同订立之日起 3 个工作日内办理出租登记。\n第七条 租赁期满，甲方应在乙方返还住房后 5 个工作日内退还押金。\n第八条 房屋及其附属设施的维修责任由甲方承担。\n",
     "expect": {
+      "CN-ELEMENT-COMPLETENESS": "compliant",
       "CN-LEASE-TERM-MAX": "noncompliant",
+      "CN-RENT-PAY-PERIOD": "compliant",
+      "CN-WRITTEN-FORM-6M": "compliant",
       "SH-AFFORDABLE-DEPOSIT-1M": "skipped",
       "SH-AFFORDABLE-TERM-MIN-1Y": "skipped",
       "SH-ENTERPRISE-FILING-30D": "skipped",
@@ -109,6 +176,19 @@
       "SH-BAN-5Y-AFFORDABLE-APPLY": "reference",
       "SH-PENALTY-AFFORDABLE-RENT-DEPOSIT": "reference"
     },
+    "expect_fields": {
+      "deposit_months": "2.00",
+      "deposit_refund_workdays": "5.00",
+      "filing_days": "15.00",
+      "has_deposit_clause": true,
+      "lease_term_years": "21.00",
+      "lodging_reg_workdays": "3.00",
+      "rent_pay_period_declared": true,
+      "rent_prepay_months": "3.00"
+    },
+    "expect_absent_fields": [
+      "enterprise_filing_days"
+    ],
     "notes": "合成样例：假姓名/假手机号；普通租赁住房；租期21 年、押金2个月、单次收租3个月、备案15日、出租登记3工作日、退押金5工作日"
   },
   {
@@ -118,7 +198,10 @@
     "lease_kind": "ordinary",
     "contract_text": "上海住房租赁合同\n\n出租人（甲方）：上海宜居住房租赁有限公司\n承租人（乙方）：赵六\n联系电话：19900000003\n\n第一条 甲方将位于上海静安区的住房出租给乙方居住使用，建筑面积 89 平方米。\n第二条 租赁期限为 2 年，自 2026 年 1 月 1 日起至 2028 年 1 月 1 日止。\n第三条 月租金为人民币 7800 元，乙方按月支付。\n第四条 乙方应向甲方支付押金 1 个月租金，即人民币 7800 元。\n第五条 甲方单次收取租金 3 个月，乙方应在签约时一次性支付。\n第六条 甲方应自合同订立之日起 45 日内办理登记备案，并自合同订立之日起 3 个工作日内办理出租登记。\n第七条 租赁期满，甲方应在乙方返还住房后 3 个工作日内退还押金。\n第八条 房屋及其附属设施的维修责任由甲方承担。\n",
     "expect": {
+      "CN-ELEMENT-COMPLETENESS": "compliant",
       "CN-LEASE-TERM-MAX": "compliant",
+      "CN-RENT-PAY-PERIOD": "compliant",
+      "CN-WRITTEN-FORM-6M": "compliant",
       "SH-AFFORDABLE-DEPOSIT-1M": "skipped",
       "SH-AFFORDABLE-TERM-MIN-1Y": "skipped",
       "SH-ENTERPRISE-FILING-30D": "unknown",
@@ -129,6 +212,19 @@
       "SH-BAN-5Y-AFFORDABLE-APPLY": "reference",
       "SH-PENALTY-AFFORDABLE-RENT-DEPOSIT": "reference"
     },
+    "expect_fields": {
+      "deposit_months": "1.00",
+      "deposit_refund_workdays": "3.00",
+      "filing_days": "45.00",
+      "has_deposit_clause": true,
+      "lease_term_years": "2.00",
+      "lodging_reg_workdays": "3.00",
+      "rent_pay_period_declared": true,
+      "rent_prepay_months": "3.00"
+    },
+    "expect_absent_fields": [
+      "enterprise_filing_days"
+    ],
     "notes": "合成样例：假姓名/假手机号；普通租赁住房；租期2 年、押金1个月、单次收租3个月、备案45日、出租登记3工作日、退押金3工作日"
   },
   {
@@ -138,7 +234,10 @@
     "lease_kind": "ordinary",
     "contract_text": "上海住房租赁合同\n\n出租人（甲方）：上海宜居住房租赁有限公司\n承租人（乙方）：孙八\n联系电话：19900000004\n\n第一条 甲方将位于上海徐汇区的住房出租给乙方居住使用，建筑面积 115 平方米。\n第二条 租赁期限为 2 年，自 2026 年 1 月 1 日起至 2028 年 1 月 1 日止。\n第三条 月租金为人民币 7800 元，乙方按月支付。\n第四条 乙方应向甲方支付押金 1 个月租金，即人民币 7800 元。\n第五条 甲方单次收取租金 3 个月，乙方应在签约时一次性支付。\n第六条 甲方应自合同订立之日起 45 日内办理登记备案，并自合同订立之日起 3 个工作日内办理出租登记。\n第七条 租赁期满，甲方应在乙方返还住房后 7 个工作日内退还押金。\n第八条 房屋及其附属设施的维修责任由甲方承担。\n",
     "expect": {
+      "CN-ELEMENT-COMPLETENESS": "compliant",
       "CN-LEASE-TERM-MAX": "compliant",
+      "CN-RENT-PAY-PERIOD": "compliant",
+      "CN-WRITTEN-FORM-6M": "compliant",
       "SH-AFFORDABLE-DEPOSIT-1M": "skipped",
       "SH-AFFORDABLE-TERM-MIN-1Y": "skipped",
       "SH-ENTERPRISE-FILING-30D": "unknown",
@@ -149,6 +248,19 @@
       "SH-BAN-5Y-AFFORDABLE-APPLY": "reference",
       "SH-PENALTY-AFFORDABLE-RENT-DEPOSIT": "reference"
     },
+    "expect_fields": {
+      "deposit_months": "1.00",
+      "deposit_refund_workdays": "7.00",
+      "filing_days": "45.00",
+      "has_deposit_clause": true,
+      "lease_term_years": "2.00",
+      "lodging_reg_workdays": "3.00",
+      "rent_pay_period_declared": true,
+      "rent_prepay_months": "3.00"
+    },
+    "expect_absent_fields": [
+      "enterprise_filing_days"
+    ],
     "notes": "合成样例：假姓名/假手机号；普通租赁住房；租期2 年、押金1个月、单次收租3个月、备案45日、出租登记3工作日、退押金7工作日"
   },
   {
@@ -158,7 +270,10 @@
     "lease_kind": "ordinary",
     "contract_text": "上海住房租赁合同\n\n出租人（甲方）：个人出租（钱七）\n承租人（乙方）：钱七\n联系电话：19900000001\n\n第一条 甲方将位于上海浦东新区的住房出租给乙方居住使用，建筑面积 115 平方米。\n第二条 租赁期限为 3 年，自 2026 年 1 月 1 日起至 2029 年 1 月 1 日止。\n第三条 月租金为人民币 6200 元，乙方按月支付。\n第四条 乙方应向甲方支付押金 2 个月租金，即人民币 12400 元。\n第五条 甲方单次收取租金 3 个月，乙方应在签约时一次性支付。\n第六条 甲方应自合同订立之日起 30 日内办理登记备案，并自合同订立之日起 5 个工作日内办理出租登记。\n第七条 租赁期满，甲方应在乙方返还住房后 5 个工作日内退还押金。\n第八条 房屋及其附属设施的维修责任由甲方承担。\n",
     "expect": {
+      "CN-ELEMENT-COMPLETENESS": "compliant",
       "CN-LEASE-TERM-MAX": "compliant",
+      "CN-RENT-PAY-PERIOD": "compliant",
+      "CN-WRITTEN-FORM-6M": "compliant",
       "SH-AFFORDABLE-DEPOSIT-1M": "skipped",
       "SH-AFFORDABLE-TERM-MIN-1Y": "skipped",
       "SH-ENTERPRISE-FILING-30D": "skipped",
@@ -169,6 +284,19 @@
       "SH-BAN-5Y-AFFORDABLE-APPLY": "reference",
       "SH-PENALTY-AFFORDABLE-RENT-DEPOSIT": "reference"
     },
+    "expect_fields": {
+      "deposit_months": "2.00",
+      "deposit_refund_workdays": "5.00",
+      "filing_days": "30.00",
+      "has_deposit_clause": true,
+      "lease_term_years": "3.00",
+      "lodging_reg_workdays": "5.00",
+      "rent_pay_period_declared": true,
+      "rent_prepay_months": "3.00"
+    },
+    "expect_absent_fields": [
+      "enterprise_filing_days"
+    ],
     "notes": "合成样例：假姓名/假手机号；普通租赁住房；租期3 年、押金2个月、单次收租3个月、备案30日、出租登记5工作日、退押金5工作日"
   },
   {
@@ -178,7 +306,10 @@
     "lease_kind": "affordable",
     "contract_text": "上海保障性租赁住房租赁合同\n\n出租人（甲方）：上海宜居住房租赁有限公司\n承租人（乙方）：孙八\n联系电话：19900000004\n\n第一条 甲方将位于上海静安区的保障性租赁住房出租给乙方居住使用，建筑面积 115 平方米。\n第二条 租赁期限为 3 年，自 2026 年 1 月 1 日起至 2029 年 1 月 1 日止。\n第三条 月租金为人民币 7800 元，乙方按季支付。\n第四条 乙方应向甲方支付押金 3 个月租金，即人民币 23400 元。\n第五条 甲方单次收取租金 6 个月，乙方应在签约时一次性支付。\n第六条 甲方应自合同订立之日起 45 日内办理登记备案，并自合同订立之日起 3 个工作日内办理出租登记。\n第七条 租赁期满，甲方应在乙方返还住房后 7 个工作日内退还押金。\n第八条 房屋及其附属设施的维修责任由甲方承担。\n",
     "expect": {
+      "CN-ELEMENT-COMPLETENESS": "compliant",
       "CN-LEASE-TERM-MAX": "compliant",
+      "CN-RENT-PAY-PERIOD": "compliant",
+      "CN-WRITTEN-FORM-6M": "compliant",
       "SH-AFFORDABLE-DEPOSIT-1M": "noncompliant",
       "SH-AFFORDABLE-TERM-MIN-1Y": "compliant",
       "SH-ENTERPRISE-FILING-30D": "unknown",
@@ -189,6 +320,19 @@
       "SH-BAN-5Y-AFFORDABLE-APPLY": "reference",
       "SH-PENALTY-AFFORDABLE-RENT-DEPOSIT": "reference"
     },
+    "expect_fields": {
+      "deposit_months": "3.00",
+      "deposit_refund_workdays": "7.00",
+      "filing_days": "45.00",
+      "has_deposit_clause": true,
+      "lease_term_years": "3.00",
+      "lodging_reg_workdays": "3.00",
+      "rent_pay_period_declared": true,
+      "rent_prepay_months": "6.00"
+    },
+    "expect_absent_fields": [
+      "enterprise_filing_days"
+    ],
     "notes": "合成样例：假姓名/假手机号；保障性租赁住房；租期3 年、押金3个月、单次收租6个月、备案45日、出租登记3工作日、退押金7工作日"
   },
   {
@@ -198,7 +342,10 @@
     "lease_kind": "affordable",
     "contract_text": "上海保障性租赁住房租赁合同\n\n出租人（甲方）：上海宜居住房租赁有限公司\n承租人（乙方）：张三\n联系电话：19900000003\n\n第一条 甲方将位于上海静安区的保障性租赁住房出租给乙方居住使用，建筑面积 102 平方米。\n第二条 租赁期限为 9 个月，自 2026 年 1 月 1 日起至 2026 年 10 月 1 日止。\n第三条 月租金为人民币 5000 元，乙方按月支付。\n第四条 乙方应向甲方支付押金 1 个月租金，即人民币 5000 元。\n第五条 甲方单次收取租金 3 个月，乙方应在签约时一次性支付。\n第六条 甲方应自合同订立之日起 15 日内办理登记备案，并自合同订立之日起 5 个工作日内办理出租登记。\n第七条 租赁期满，甲方应在乙方返还住房后 3 个工作日内退还押金。\n第八条 房屋及其附属设施的维修责任由甲方承担。\n",
     "expect": {
+      "CN-ELEMENT-COMPLETENESS": "compliant",
       "CN-LEASE-TERM-MAX": "compliant",
+      "CN-RENT-PAY-PERIOD": "compliant",
+      "CN-WRITTEN-FORM-6M": "compliant",
       "SH-AFFORDABLE-DEPOSIT-1M": "compliant",
       "SH-AFFORDABLE-TERM-MIN-1Y": "noncompliant",
       "SH-ENTERPRISE-FILING-30D": "unknown",
@@ -209,6 +356,97 @@
       "SH-BAN-5Y-AFFORDABLE-APPLY": "reference",
       "SH-PENALTY-AFFORDABLE-RENT-DEPOSIT": "reference"
     },
+    "expect_fields": {
+      "deposit_months": "1.00",
+      "deposit_refund_workdays": "3.00",
+      "filing_days": "15.00",
+      "has_deposit_clause": true,
+      "lease_term_years": "0.75",
+      "lodging_reg_workdays": "5.00",
+      "rent_pay_period_declared": true,
+      "rent_prepay_months": "3.00"
+    },
+    "expect_absent_fields": [
+      "enterprise_filing_days"
+    ],
     "notes": "合成样例：假姓名/假手机号；保障性租赁住房；租期9 个月、押金1个月、单次收租3个月、备案15日、出租登记5工作日、退押金3工作日"
+  },
+  {
+    "sample_id": "S-BJ-011",
+    "city": "北京",
+    "party": "enterprise",
+    "lease_kind": "ordinary",
+    "contract_text": "北京住房租赁合同\n\n出租人（甲方）：北京安心住房租赁有限公司\n承租人（乙方）：钱七\n联系电话：19900000002\n\n第一条 甲方将位于北京海淀区的住房出租给乙方居住使用，建筑面积 68 平方米。\n第二条 租赁期限为 21 年，自 2026 年 1 月 1 日起至 2047 年 1 月 1 日止。\n第三条 月租金为人民币 5000 元，乙方按月支付。\n第四条 乙方应向甲方支付押金 2 个月租金，即人民币 10000 元。\n第五条 甲方单次收取租金 3 个月，乙方应在签约时一次性支付。\n第六条 甲方应自合同订立之日起 30 日内办理登记备案，并自合同订立之日起 3 个工作日内办理出租登记。\n第七条 租赁期满，甲方应在乙方返还住房后 3 个工作日内退还押金。\n",
+    "expect": {
+      "BJ-CONTRACT-ELEMENT-DEPOSIT": "compliant",
+      "BJ-DEPOSIT-MAX-1M": "noncompliant",
+      "BJ-DEPOSIT-REFUND-3WD": "compliant",
+      "BJ-ENTERPRISE-FILING-30D": "unknown",
+      "BJ-ESCROW-DEPOSIT-TERMS": "compliant",
+      "BJ-FILING-30D": "compliant",
+      "BJ-LODGING-REG-3WD": "compliant",
+      "BJ-RENT-PREPAY-MAX-3M": "compliant",
+      "CN-ELEMENT-COMPLETENESS": "noncompliant",
+      "CN-LEASE-TERM-MAX": "noncompliant",
+      "CN-RENT-PAY-PERIOD": "compliant",
+      "CN-WRITTEN-FORM-6M": "compliant"
+    },
+    "also_expect": {
+      "BJ-ESCROW-RENT-SUPERVISION": "reference",
+      "BJ-RENT-INTERVENTION": "reference"
+    },
+    "expect_fields": {
+      "deposit_months": "2.00",
+      "deposit_refund_workdays": "3.00",
+      "filing_days": "30.00",
+      "has_deposit_clause": true,
+      "lease_term_years": "21.00",
+      "lodging_reg_workdays": "3.00",
+      "rent_pay_period_declared": true,
+      "rent_prepay_months": "3.00"
+    },
+    "expect_absent_fields": [
+      "enterprise_filing_days"
+    ],
+    "notes": "合成样例：假姓名/假手机号；普通租赁住房；租期21 年、押金2个月、单次收租3个月、备案30日、出租登记3工作日、退押金3工作日"
+  },
+  {
+    "sample_id": "S-BJ-012",
+    "city": "北京",
+    "party": "enterprise",
+    "lease_kind": "ordinary",
+    "contract_text": "住房名词说明\n\n本节说明用于解释若干名词，不构成任何合同条款。\n\"定金\"指为担保履约而预先支付的一笔款项，具体数额由当事人约定。\n\"保证金\"指用于担保履约的款项。\n本节既非合同亦非法律意见，仅作名词释义之用。\n",
+    "expect": {
+      "BJ-CONTRACT-ELEMENT-DEPOSIT": "unknown",
+      "BJ-DEPOSIT-MAX-1M": "unknown",
+      "BJ-DEPOSIT-REFUND-3WD": "unknown",
+      "BJ-ENTERPRISE-FILING-30D": "unknown",
+      "BJ-ESCROW-DEPOSIT-TERMS": "unknown",
+      "BJ-FILING-30D": "unknown",
+      "BJ-LODGING-REG-3WD": "unknown",
+      "BJ-RENT-PREPAY-MAX-3M": "unknown",
+      "CN-ELEMENT-COMPLETENESS": "unknown",
+      "CN-LEASE-TERM-MAX": "unknown",
+      "CN-RENT-PAY-PERIOD": "unknown",
+      "CN-WRITTEN-FORM-6M": "unknown"
+    },
+    "also_expect": {
+      "BJ-ESCROW-RENT-SUPERVISION": "reference",
+      "BJ-RENT-INTERVENTION": "reference"
+    },
+    "expect_fields": {
+      "has_deposit_clause": false,
+      "rent_pay_period_declared": false
+    },
+    "expect_absent_fields": [
+      "deposit_months",
+      "deposit_refund_workdays",
+      "enterprise_filing_days",
+      "filing_days",
+      "lease_term_years",
+      "lodging_reg_workdays",
+      "rent_prepay_months"
+    ],
+    "notes": "非合同文本（术语说明）：覆盖「一条规则都不适用 → not_assessed」形态"
   }
 ]

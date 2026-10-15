@@ -54,13 +54,87 @@
     "max_runtime_seconds": 60
   },
   "coverage": {
-    "note": "规则包条目总数按 check_type 登记；真值库采样数由基准层填充（plan/04 §2.3）",
+    "note": "规则包条目总数（分母）+ 真值库采样数（分子）+ 采样清单；抽样覆盖、非逐条穷举",
+    "sampling_declaration": "抽样覆盖、非逐条穷举",
     "rule_totals_by_check_type": {
       "deadline_obligation": 1,
       "element_completeness": 2,
       "numeric_limit": 1
     },
-    "rule_total": 4
+    "rule_total": 4,
+    "truth_sampling": {
+      "numeric_limit": {
+        "rule_total": 1,
+        "sampled_rules": 1,
+        "sampled_rule_ids": [
+          "CN-LEASE-TERM-MAX"
+        ],
+        "sample_ids": [
+          "S-BJ-001",
+          "S-BJ-002",
+          "S-BJ-003",
+          "S-BJ-004",
+          "S-BJ-011",
+          "S-BJ-012",
+          "S-SH-005",
+          "S-SH-006",
+          "S-SH-007",
+          "S-SH-008",
+          "S-SH-009",
+          "S-SH-010"
+        ]
+      },
+      "deadline_obligation": {
+        "rule_total": 1,
+        "sampled_rules": 1,
+        "sampled_rule_ids": [
+          "CN-RENT-PAY-PERIOD"
+        ],
+        "sample_ids": [
+          "S-BJ-001",
+          "S-BJ-002",
+          "S-BJ-003",
+          "S-BJ-004",
+          "S-BJ-011",
+          "S-BJ-012",
+          "S-SH-005",
+          "S-SH-006",
+          "S-SH-007",
+          "S-SH-008",
+          "S-SH-009",
+          "S-SH-010"
+        ]
+      },
+      "element_completeness": {
+        "rule_total": 2,
+        "sampled_rules": 2,
+        "sampled_rule_ids": [
+          "CN-ELEMENT-COMPLETENESS",
+          "CN-WRITTEN-FORM-6M"
+        ],
+        "sample_ids": [
+          "S-BJ-001",
+          "S-BJ-002",
+          "S-BJ-003",
+          "S-BJ-004",
+          "S-BJ-011",
+          "S-BJ-012",
+          "S-SH-005",
+          "S-SH-006",
+          "S-SH-007",
+          "S-SH-008",
+          "S-SH-009",
+          "S-SH-010"
+        ]
+      },
+      "text_prohibition": {
+        "rule_total": 0,
+        "sampled_rules": 0,
+        "sampled_rule_ids": [],
+        "sample_ids": []
+      }
+    },
+    "truth_sampled_total": 4
   },
   "rules": [
     {

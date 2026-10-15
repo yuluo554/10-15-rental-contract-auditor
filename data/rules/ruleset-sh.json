@@ -54,13 +54,72 @@
     "max_runtime_seconds": 60
   },
   "coverage": {
-    "note": "规则包条目总数按 check_type 登记；真值库采样数由基准层填充（plan/04 §2.3）",
+    "note": "规则包条目总数（分母）+ 真值库采样数（分子）+ 采样清单；抽样覆盖、非逐条穷举",
+    "sampling_declaration": "抽样覆盖、非逐条穷举",
     "rule_totals_by_check_type": {
       "deadline_obligation": 2,
       "numeric_limit": 4,
       "text_prohibition": 1
     },
-    "rule_total": 7
+    "rule_total": 7,
+    "truth_sampling": {
+      "numeric_limit": {
+        "rule_total": 4,
+        "sampled_rules": 4,
+        "sampled_rule_ids": [
+          "SH-AFFORDABLE-DEPOSIT-1M",
+          "SH-AFFORDABLE-TERM-MIN-1Y",
+          "SH-PENALTY-AFFORDABLE-RENT-DEPOSIT",
+          "SH-RENT-DEPOSIT-ESCROW"
+        ],
+        "sample_ids": [
+          "S-SH-005",
+          "S-SH-006",
+          "S-SH-007",
+          "S-SH-008",
+          "S-SH-009",
+          "S-SH-010"
+        ]
+      },
+      "deadline_obligation": {
+        "rule_total": 2,
+        "sampled_rules": 2,
+        "sampled_rule_ids": [
+          "SH-ENTERPRISE-FILING-30D",
+          "SH-FILING-30D"
+        ],
+        "sample_ids": [
+          "S-SH-005",
+          "S-SH-006",
+          "S-SH-007",
+          "S-SH-008",
+          "S-SH-009",
+          "S-SH-010"
+        ]
+      },
+      "element_completeness": {
+        "rule_total": 0,
+        "sampled_rules": 0,
+        "sampled_rule_ids": [],
+        "sample_ids": []
+      },
+      "text_prohibition": {
+        "rule_total": 1,
+        "sampled_rules": 1,
+        "sampled_rule_ids": [
+          "SH-BAN-5Y-AFFORDABLE-APPLY"
+        ],
+        "sample_ids": [
+          "S-SH-005",
+          "S-SH-006",
+          "S-SH-007",
+          "S-SH-008",
+          "S-SH-009",
+          "S-SH-010"
+        ]
+      }
+    },
+    "truth_sampled_total": 7
   },
   "rules": [
     {

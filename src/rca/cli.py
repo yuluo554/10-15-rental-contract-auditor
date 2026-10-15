@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from . import __version__
+from .benchmark.coverage import coverage_lines
 from .engine.pipeline import (
     PipelineError,
     compute_result,
@@ -77,6 +78,14 @@ def _sources_rows(city: str, data_dir: Optional[str]) -> List[List[str]]:
     return out
 
 
+def _coverage_of(city: str, data_dir: Optional[str]):
+    """取规则包 manifest 的覆盖段（分母+分子+采样清单）。取不到即 None（不阻断导出）。"""
+    try:
+        return ruleset_overview(city, data_dir).get("coverage")
+    except PipelineError:
+        return None
+
+
 def cmd_check(args) -> int:
     text = _load_contract(args)
     city = args.city
@@ -85,10 +94,11 @@ def cmd_check(args) -> int:
     if args.json:
         payload = result.to_dict()
         payload["sources"] = parameter_overview(city, args.data)
+        payload["coverage"] = _coverage_of(city, args.data)
         sys.stdout.write(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
     else:
         rows = _sources_rows(city, args.data)
-        md = render_markdown(result, rows)
+        md = render_markdown(result, rows, _coverage_of(city, args.data))
         sys.stdout.write(md)
         sys.stdout.write("\n整体判定：%s\n" % result.overall_summary())
 
@@ -99,12 +109,13 @@ def cmd_check(args) -> int:
 
 
 def _write_reports(result: Result, city: str, args) -> None:
-    from .report.sections import assert_traceable
+    from .report.sections import assert_traceable, coverage_rows
 
     rows = _sources_rows(city, args.data)
     assert_traceable(result, rows)
     out = Path(args.report)
     out.mkdir(parents=True, exist_ok=True)
+    coverage = _coverage_of(city, args.data)
     sections = report_sections(result)
     for sec in sections:
         if sec.key == "sources":
@@ -112,8 +123,18 @@ def _write_reports(result: Result, city: str, args) -> None:
                 "headers": ["规则 ID", "条款号", "来源文件", "文号", "施行日期", "URL"],
                 "rows": rows,
             }
+        elif sec.key == "coverage" and coverage is not None:
+            # XLSX 与 Markdown 必须同源同内容：只给 Markdown 填覆盖表，
+            # 两种产物就会对同一事实给出不同完整度（"两格式内容一致"是硬约束）。
+            cov_rows = coverage_rows(coverage)
+            sec.table = {
+                "headers": ["规则形态", "规则条数（分母）", "真值库采样条数（分子）", "采样清单"],
+                "rows": cov_rows,
+            }
     md_path = out / "体检报告.md"
-    md_path.write_bytes(render_markdown(result, rows).encode("utf-8"))
+    md_path.write_bytes(
+        render_markdown(result, rows, coverage).encode("utf-8")
+    )
     xlsx_path = out / "体检报告.xlsx"
     xlsx_path.write_bytes(render_xlsx_bytes(sections))
     sys.stdout.write("已导出报告: %s / %s\n" % (md_path, xlsx_path))
@@ -175,6 +196,17 @@ def cmd_rules(args) -> int:
     print("  规则总数：%s" % cov.get("rule_total"))
     for k, v in sorted((cov.get("rule_totals_by_check_type") or {}).items()):
         print("  %-24s %s" % (k, v))
+    # 分子（真值库采样数）与采样清单必须一并可见——只显示分母就是假覆盖
+    # （plan/04 §2.3 原话："只写分子就是假覆盖"）。
+    truth = cov.get("truth_sampling") or {}
+    if truth:
+        print("\n  真值库采样（%s）：" % cov.get("sampling_declaration", ""))
+        for line in coverage_lines(cov):
+            print("    %s" % line)
+        for form in sorted(truth):
+            ids = truth[form].get("sampled_rule_ids") or []
+            if ids:
+                print("      %-22s 采样清单：%s" % (form, "、".join(ids)))
     if diag["disabled"]:
         print("\n未启用（数值核对状态非 verified）：")
         for d in diag["disabled"]:
@@ -238,17 +270,28 @@ def cmd_gui(args) -> int:
 
     分层守门要求重件只在函数体内 import → 真正的缺依赖异常在后面的调用
     阶段才抛，"只包 import 行"会漏（抛裸异常而非 exit 3）。
+
+    降级提示按 `is_frozen()` 分流（plan/05 §6）：冻结态读者拿不到 pip，
+    告诉他"去 pip install"是无效指引；只有源码态才该给安装命令。
+    CLI 发行包**不含 PySide6**（spec 分档：GUI 重件不进 CLI 产物），
+    故冻结态如实说明"本发行包未内嵌桌面功能、请取 GUI 发行包"。
     """
     try:
         from .gui.app import run_gui
 
         return run_gui(data_dir=args.data)
     except ImportError as exc:
-        print(
-            "GUI 需要可选依赖 PySide6。源码态安装：pip install -e \".[gui]\"\n"
-            "（若为发行包，本包可能未内嵌该功能）\n原因：%s" % exc,
-            file=sys.stderr,
-        )
+        if is_frozen():
+            print(
+                "本发行包未内嵌桌面界面（CLI 发行包不含 PySide6）。\n"
+                "请改用 GUI 发行包（rca-gui），或使用本包的 CLI 子命令。\n原因：%s" % exc,
+                file=sys.stderr,
+            )
+        else:
+            print(
+                "GUI 需要可选依赖 PySide6。安装：pip install -e \".[gui]\"\n原因：%s" % exc,
+                file=sys.stderr,
+            )
         return EXIT_MISSING_DEP
 
 
@@ -309,10 +352,29 @@ def build_parser() -> argparse.ArgumentParser:
     return ap
 
 
+def normalize_argv(argv: List[str]) -> List[str]:
+    """把 `--selftest <文件>` 规范化为 `selftest --out <文件>`。
+
+    plan/05 §6 与 `tools/verify_package.py` 把 `--selftest <输出文件>` 定为
+    **脚本化验收窗口 exe 的唯一通路**（窗口版 stdout 不接终端）。该形态与
+    `selftest --out` 是同一件事，规范化只做一次、只在此处——否则 CLI exe 与
+    GUI exe 各写一份解析，双入口的验收结论就可能不是同一份实现产的。
+    """
+    if not argv or argv[0] != "--selftest":
+        return argv
+    rest = list(argv[1:])
+    out: List[str] = ["selftest"]
+    # `--selftest` 后跟的第一个非选项词是输出文件（位置参数语义）
+    if rest and not rest[0].startswith("-"):
+        out += ["--out", rest.pop(0)]
+    return out + rest
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     ensure_utf8_stdio()
     ap = build_parser()
-    args = ap.parse_args(argv)
+    raw = list(sys.argv[1:] if argv is None else argv)
+    args = ap.parse_args(normalize_argv(raw))
     if not getattr(args, "command", None):
         ap.print_help()
         return EXIT_USAGE

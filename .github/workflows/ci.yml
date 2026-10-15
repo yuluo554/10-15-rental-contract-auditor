@@ -79,3 +79,45 @@ jobs:
           python -m rca.cli rules --city 北京
           python -m rca.cli selftest --out selftest.json
           test -s selftest.json
+
+  package:
+    # M5 交付判据：**真构建 + 产物级验收**。只在 windows/3.12 跑一次
+    # （PyInstaller ≥6 是打 GUI 的硬前提；spec 的 datas/入口/排除项差异
+    #   只在真构建时才会暴露——"测试全绿"证明不了产物可用）。
+    name: "package (windows-latest / py3.12)"
+    runs-on: windows-latest
+    needs: test
+    env:
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: "utf-8"
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install with build extras
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[gui,build]"
+
+      - name: Build dual exe
+        run: python -m PyInstaller --noconfirm --clean tools/rca.spec
+
+      - name: Verify CLI package (neutral dir + stripped PATH)
+        run: python tools/verify_package.py --dist dist/rca-cli
+
+      - name: Verify GUI package
+        run: python tools/verify_package.py --dist dist/rca-gui --gui-selftest
+
+      - name: Release zip determinism
+        shell: bash
+        run: |
+          python tools/build_release.py --dist dist/rca-cli --out _scratch/release --name rca-cli-win64.zip
+          python tools/build_release.py --dist dist/rca-cli --out _scratch/release --name rca-cli-win64.zip --check

@@ -9,7 +9,7 @@ from typing import Dict, List
 
 from ..model import NON_PASS_STATUSES
 
-__all__ = ["observed_nonpass", "compare_nonpass", "non_pass_set"]
+__all__ = ["observed_nonpass", "compare_nonpass", "compare_exact", "non_pass_set"]
 
 # 非 pass = fail ∪ unknown ∪ not_assessed
 # "skipped" 不计入——它表示"不适用"，不是"有问题"。
@@ -61,4 +61,40 @@ def compare_nonpass(
         "missed": sorted(missed),
         "false_positive": sorted(fp),
         "status_mismatch": sorted(mismatch),
+    }
+
+
+def compare_exact(
+    expected: Dict[str, str], observed: Dict[str, str]
+) -> Dict[str, List[str]]:
+    """全量精确对账：真值登记的**每条**规则，观测状态必须与登记状态一致。
+
+    与 `compare_nonpass` 的分工：后者只比对非 pass 集合（用于误报/漏报判定），
+    会漏掉一整类错误——真值登记 `compliant` / `skipped` / `reference`，观测却是
+    别的状态：两侧都不落在非 pass 集合里，**恒不报**。
+
+    本函数把 `expect ∪ also_expect` 全部纳入分母，因此 `also_expect`（同一注入
+    隐含的其余结论，如 quota 条进条件触发栏的 `reference`）不再"登记了但从不校验"
+    的死数据——真值库里出现一个永不参与对账的字段，本身就是一种假覆盖。
+
+    返回四类：`hits`（登记且一致）、`mismatch`（登记且观测到，但状态不同）、
+    `missed`（登记了却完全没观测到）、`unregistered`（观测到却未登记真值——
+    真值库漏登记，与"假覆盖"同源，故计入分母的非命中侧）。
+    """
+    hits: List[str] = []
+    mismatch: List[str] = []
+    missed: List[str] = []
+    for rid, st in expected.items():
+        if rid not in observed:
+            missed.append(rid)
+        elif observed[rid] == st:
+            hits.append(rid)
+        else:
+            mismatch.append(rid)
+    unregistered = [rid for rid in observed if rid not in expected]
+    return {
+        "hits": sorted(hits),
+        "mismatch": sorted(mismatch),
+        "missed": sorted(missed),
+        "unregistered": sorted(unregistered),
     }

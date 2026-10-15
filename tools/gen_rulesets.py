@@ -21,11 +21,13 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from rca.benchmark.coverage import SAMPLING_DECLARATION, sample_coverage  # noqa: E402
 from rca.stdio import ensure_utf8_stdio  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 RAW = ROOT / "data" / "knowledge" / "raw"
 RULES_DIR = ROOT / "data" / "rules"
+SAMPLES = ROOT / "data" / "samples" / "samples.json"
 MANIFEST = ROOT / "data" / "knowledge" / "MANIFEST.json"
 
 # ---------------------------------------------------------------------------
@@ -47,7 +49,6 @@ SPECS = {
         "ruleset_id": "cn-2021.01",
         "city": "全国",
         "city_code": "cn",
-        "version": "2021.01",
         "snapshot": "cn-civil-code.txt",
         "rules": [
             {
@@ -150,7 +151,6 @@ SPECS = {
         "ruleset_id": "bj-2024.10",
         "city": "北京",
         "city_code": "bj",
-        "version": "2024.10",
         "snapshot": "bj-housing-rental.txt",
         "rules": [
             {
@@ -371,7 +371,6 @@ SPECS = {
         "ruleset_id": "sh-2023.02",
         "city": "上海",
         "city_code": "sh",
-        "version": "2023.02",
         "snapshot": "sh-housing-rental.txt",
         "rules": [
             {
@@ -551,8 +550,47 @@ def derive_clause(snapshot_text: str, anchor: str, source_id: str) -> str:
     return "第%s条" % best.group(1)
 
 
+def derive_version(spec: dict, snap_meta_by_id: dict) -> str:
+    """从 manifest 推导规则包版本号：**被本包规则引用的来源中，最晚的施行日期**。
+
+    绝不手抄：版本号是"这套规则依据哪一版法规"的唯一标识，写死会与数据脱钩——
+    新增/替换一条规则所依据的来源后，版本号若还是旧的，报告会把"依据已更新"
+    的判定标成旧版本（读者据此核证会核到错版本的原文）。
+    取最晚施行日：包内任一规则引用的来源更新，整套口径即随之变化。
+
+    形如 `YYYY.MM`（月粒度：法规修订以月为发布节奏，日粒度会引入无意义的差异）。
+    """
+    referenced = {r["source_id"] for r in spec["rules"]}
+    dates = []
+    for sid in sorted(referenced):
+        meta = snap_meta_by_id.get(sid)
+        if meta is None:
+            raise ValueError("规则引用的来源未在台账登记: %s" % sid)
+        eff = meta.get("effective_date")
+        if not eff:
+            raise ValueError("来源 %s 缺 effective_date，无法推导版本号" % sid)
+        dates.append(eff)
+    if not dates:
+        raise ValueError("规则包未引用任何来源，无法推导版本号")
+    latest = max(dates)
+    return "%s.%s" % (latest[:4], latest[5:7])
+
+
 def load_manifest() -> dict:
     return json.loads(MANIFEST.read_text(encoding="utf-8"))
+
+
+def load_samples() -> list:
+    """真值库（覆盖登记的**分子**来源）。
+
+    覆盖登记必须"分母 + 分子 + 采样清单"三件套（plan/04 §2.3）——只写分母
+    就是假覆盖。分子由真值库的 `expect` / `also_expect` 实算，故生成器需要读样例。
+    **缺样例即显式报错**，绝不静默写 0：静默写 0 会让"没采样"与"采样了 0 条"
+    长得一样，正是本登记要防的误读。
+    """
+    if not SAMPLES.is_file():
+        raise FileNotFoundError("真值库缺失，先跑 tools/gen_samples.py: %s" % SAMPLES)
+    return json.loads(SAMPLES.read_text(encoding="utf-8"))
 
 
 def build_ruleset(key: str) -> dict:
@@ -613,16 +651,21 @@ def build_ruleset(key: str) -> dict:
             entry["elements"] = r["elements"]
         rules.append(entry)
 
-    # 覆盖登记：总数 / 采样数（基准层填采样数，此处先登记总数）
+    # 覆盖登记：**分母 + 分子 + 采样清单** 三件套（plan/04 §2.3）。
+    # 分母 = 本包逐形态规则条数；分子 = 真值库对该形态采样到的条数；清单 = 具体哪几条规则、
+    # 由哪几份样例提供真值。并声明"抽样覆盖、非逐条穷举"——声明本身就是口径的一部分：
+    # 缺了它，读者会把"逐形态登记"读成"逐条穷举过"。
     by_type: dict = {}
     for r in rules:
         by_type[r["check_type"]] = by_type.get(r["check_type"], 0) + 1
+    rule_forms = {r["rule_id"]: r["check_type"] for r in rules}
+    truth_sampling = sample_coverage(rule_forms, load_samples())
 
     return {
         "ruleset_id": spec["ruleset_id"],
         "city": spec["city"],
         "city_code": spec["city_code"],
-        "version": spec["version"],
+        "version": derive_version(spec, {s["source_id"]: s for s in manifest["sources"]}),
         "generated_by": "tools/gen_rulesets.py",
         "sources": [
             {
@@ -639,9 +682,15 @@ def build_ruleset(key: str) -> dict:
         ],
         "benchmark_thresholds": THRESHOLDS,
         "coverage": {
-            "note": "规则包条目总数按 check_type 登记；真值库采样数由基准层填充（plan/04 §2.3）",
+            "note": "规则包条目总数（分母）+ 真值库采样数（分子）+ 采样清单；"
+            + SAMPLING_DECLARATION,
+            "sampling_declaration": SAMPLING_DECLARATION,
             "rule_totals_by_check_type": dict(sorted(by_type.items())),
             "rule_total": len(rules),
+            "truth_sampling": truth_sampling,
+            "truth_sampled_total": sum(
+                v["sampled_rules"] for v in truth_sampling.values()
+            ),
         },
         "rules": rules,
     }

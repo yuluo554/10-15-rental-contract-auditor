@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from ..model import Result
-from .sections import Section, report_sections
+from .sections import Section, coverage_rows, report_sections
 
 __all__ = ["render_markdown"]
 
@@ -45,8 +45,13 @@ def render_sections(sections: List[Section]) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
-def render_markdown(result: Result, sources_rows: List[List[str]] | None = None) -> str:
-    """渲染完整报告。sources_rows 由调用方从 parameter_overview 构造。"""
+def render_markdown(
+    result: Result,
+    sources_rows: List[List[str]] | None = None,
+    coverage: Optional[Dict[str, Any]] = None,
+) -> str:
+    """渲染完整报告。sources_rows 由调用方从 parameter_overview 构造，
+    coverage 由调用方从规则包 manifest 的 `coverage` 段取（分母+分子+采样清单）。"""
     sections = report_sections(result)
     if sources_rows is not None:
         for sec in sections:
@@ -55,5 +60,15 @@ def render_markdown(result: Result, sources_rows: List[List[str]] | None = None)
                     "headers": ["规则 ID", "条款号", "来源文件", "文号", "施行日期", "URL"],
                     "rows": sources_rows,
                 }
+    if coverage is not None:
+        rows = coverage_rows(coverage)
+        for sec in sections:
+            if sec.key == "coverage":
+                sec.table = {
+                    "headers": ["规则形态", "规则条数（分母）", "真值库采样条数（分子）", "采样清单"],
+                    "rows": rows,
+                }
+                sec.enabled = bool(rows)
+                sec.disabled_note = None if rows else "规则包未登记覆盖采样信息。"
     body = render_sections(sections)
     return body

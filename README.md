@@ -87,24 +87,73 @@ python -m rca.cli gui
 | 2 | 输入不可用 / 用法错误 / 参数错误 |
 | 3 | 缺可选依赖（如 GUI 的 PySide6） |
 
+### 桌面 exe 打包与验收（双入口）
+
+需要 Python 3.12（PyInstaller ≥6；5.x 扫 PySide6 字节码会确定性崩溃）：
+
+```bash
+# 打双 exe（GUI console=False + CLI console=True）→ dist/rca-cli、dist/rca-gui
+python -m PyInstaller --noconfirm --clean tools/rca.spec
+
+# 产物级验收（中立目录 + 剥离 PATH，逐项断言）
+python tools/verify_package.py --dist dist/rca-cli
+python tools/verify_package.py --dist dist/rca-gui --gui-selftest
+```
+
+**两个 exe 的依赖是分档的**：PySide6 **只进 GUI 目标**；CLI 目标还排除了
+出网栈（`ssl`/`_ssl`/`_socket`/`_hashlib`）。所以 CLI 发行包约 12MB、
+**不含任何能发起 TLS 的组件**——"纯本地零上传"因此不只是代码声明，
+而是**产物级可核验**（`verify_package.py` 会扫产物里的出网组件）。
+
+**冻结入口是独立的薄模块**（`rca/cli_entry.py` / `rca/gui_entry.py`，绝对导入）：
+PyInstaller 把入口脚本当顶层 `__main__` 执行，包内相对导入必然
+`attempted relative import with no known parent package`。
+
+**窗口版 exe 怎么脚本化验收**：窗口版 stdout 不接终端，故 `--selftest <文件>`
+是唯一通路（结论写文件、退出码携带成败）：
+
+```bash
+rca-cli.exe --selftest out.json     # 等价于 rca selftest --out out.json
+rca-gui.exe --selftest out.json     # 走 CLI 的同一份实现（双入口结论同源）
+```
+
+`verify_package.py` 至少核这几件事：内嵌数据逐份 sha256 与仓库冻结件一致
+（防"打进包的是旧数据"）、`data_dir_in_dist: true`（防 exe 回头读开发机仓库）、
+冻结态 `check` 的结论与退出码同源码运行**一致**、CLI 产物无出网组件、
+GUI exe 拒绝未知参数（否则会静默挂进事件循环）。
+
 ## 评测
 
 基准三套件，零 API 依赖、离线可复跑（`python -m rca.cli bench`）：
 
 | 套件 | 类型 | 指标 | 结果 |
 |---|---|---|---|
-| B1 | 样本驱动 | 要素抽取字段准确率 | 90/90 = 1.0000 |
-| B2 | 样本驱动 | 端到端判定命中率（植入真值对账） | 17/17 = 1.0000，误报 0 |
+| B1 | 样本驱动 | 要素抽取**字段级 P/R/F1** | F1 = 1.0000（P = 1.0000，R = 1.0000），90/90 |
+| B2 | 样本驱动 | 端到端判定命中率（植入真值**全量**对账） | 150/150 = 1.0000，误报 0 |
 | B3 | **规则驱动**（不读真值库） | 边界断言通过率 | 14/14 = 1.0000 |
 
 **为什么分两层**：样本驱动证明"引擎在这些样本上对"，但**样本没覆盖的端点它证明不了**；
 B3 从规则表推导端点做 ±精度邻域断言，专门补这个缺口。
 
+**B1 的 P/R/F1 是真算的**：真值侧逐样例登记"应有值的字段 → 期望取值"与"应观测不到的字段"
+（`expect_fields` / `expect_absent_fields`），由生成器按合同入参独立推导、**不调用引擎抽取函数**——
+否则引擎抽错时期望跟着一起错，探活永远绿。TP = 期望有值且引擎取到**同一取值**；
+FP = 期望 absent 却抽到值，或取值不符；FN = 期望有值却抽不到。
+
+**B2 的分母是真值登记的每条规则**（`expect ∪ also_expect`）：只算"非 pass 集合"会漏掉一整类错误——
+真值登记 `compliant` / `skipped` / `reference`、观测却是别的 pass 侧状态时，两侧都不在非 pass 集合里，
+**恒不报**（`also_expect` 会沦为"登记了但从不校验"的死数据）。
+
+**覆盖登记三件套**：规则包 manifest 逐形态登记 **"规则条数（分母）/ 真值库采样条数（分子）/ 采样清单"**，
+并声明"抽样覆盖、非逐条穷举"；`rules --city X` 与导出报告都可见。**只写分母就是假覆盖**——
+本项目此前连分子都没有，M4 补齐。
+
 **门槛随规则包下发**（数据非代码，见 `data/rules/ruleset-*.json` 的 `benchmark_thresholds`），
 基准层只读、缺失即报配置错误——调门槛不改代码。
 
-**每套件配可证伪探活**：注入缺陷（篡改真值 / 改规则边界）后基准必须报未达标，
-防"基准全绿只是因为它什么都没查"。
+**每套件配可证伪探活**：注入缺陷（篡改真值 / 注入坏引用规则 / 改规则边界）后，
+**`run_benchmarks` 必须真的返回非 0**（端到端，不是只断言对账函数返回非空），
+防"基准全绿只是因为它什么都没查"。**空分母不冒充通过**：某形态零采样件 → 未达标。
 
 ## 目录
 
@@ -117,6 +166,8 @@ src/rca/
   report/          单一渲染源 + Markdown + 自写 OOXML writer
   benchmark/       三套件基准 + 真值对账单一实现源
   gui/             PySide6 界面（只消费引擎 API，零判定逻辑）
+  cli_entry.py     冻结态 CLI 入口（绝对导入的薄入口，供 PyInstaller）
+  gui_entry.py     冻结态 GUI 入口（含 `--selftest` 脚本化验收通路）
   packaging.py     打包白名单单一事实源
 data/
   knowledge/raw/   官方全文快照（字节冻结，.gitattributes 标 -text）
@@ -125,7 +176,7 @@ data/
   samples/         合成合同样例 + 植入真值
 tools/             抓取/生成/门禁/审计/打包脚本
 plan/              计划文档 00–06 与跨会话交接快照
-tests/             149 项测试（含全部守门）
+tests/             283 项测试（含全部守门）
 ```
 
 ## 数据来源
@@ -173,6 +224,11 @@ python tools/gen_rulesets.py --check    # 规则包冻结校验
 python tools/gen_samples.py --check     # 样例冻结校验
 python tools/check_literals.py          # 零政策字面量门禁
 python tools/audit_desensitize.py all   # 脱敏审计
+
+# 打包与产物验收（需 3.12 + PyInstaller ≥6）
+python -m PyInstaller --noconfirm --clean tools/rca.spec
+python tools/verify_package.py --dist dist/rca-cli
+python tools/verify_package.py --dist dist/rca-gui --gui-selftest
 ```
 
 方法论：本项目按 `ai-tool-project-sprint` 冲刺方法论组织——计划先行（`plan/`）、

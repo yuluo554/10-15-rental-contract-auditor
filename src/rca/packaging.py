@@ -30,7 +30,12 @@ FORBIDDEN_TOP_LEVEL = ("_private", ".git", "plan", "tests", "_scratch", "_backup
 
 
 def build_datas(root: Path) -> List[Tuple[str, str]]:
-    """返回 PyInstaller `datas` 列表 [(源相对路径, 目标目录)]。
+    """返回 PyInstaller `datas` 列表 [(源**绝对**路径, 目标目录)]。
+
+    源路径必须是绝对的：PyInstaller 把 datas 的相对源路径解析到 **SPECPATH**
+    （`tools/`），而不是 CWD——写相对路径会让构建报
+    `Unable to find '<repo>/tools/data/rules/...'`（M5 首次实构建踩到）。
+    目标目录保持相对（它是包内布局，相对 bundle 根）。
 
     任一白名单项缺失即抛错——"照文档走"必然拿到可用构建环境。
     """
@@ -40,7 +45,7 @@ def build_datas(root: Path) -> List[Tuple[str, str]]:
         p = root / rel
         if not p.is_file():
             raise FileNotFoundError("打包白名单引用了不存在的文件: %s" % rel)
-        datas.append((rel, str(Path(rel).parent.as_posix())))
+        datas.append((str(p.resolve()), str(Path(rel).parent.as_posix())))
 
     # 未登记的数据目录检测（防"新数据目录悄悄没进包"）
     data_root = root / "data"

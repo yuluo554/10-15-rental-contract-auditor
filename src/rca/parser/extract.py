@@ -25,7 +25,7 @@ _COMPANY_SUFFIX = ("有限公司", "有限责任公司", "股份有限公司", "
 _INDIVIDUAL_HINTS = ("个人出租", "房东", "自然人")
 
 _CN_NUM = {
-    "一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6,
+    "一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5, "六": 6,
     "七": 7, "八": 8, "九": 9, "十": 10,
 }
 
@@ -55,8 +55,8 @@ def _cn_to_int(text: str) -> Optional[int]:
 
 
 def _num_pattern() -> str:
-    """数字形态：阿拉伯或中文数字。"""
-    return r"(?:\d+(?:\.\d+)?|[一二三四五六七八九十]+)"
+    """数字形态：阿拉伯或中文数字（含"两"，合同口语里"两年/两个月"常见）。"""
+    return r"(?:\d+(?:\.\d+)?|[一二两三四五六七八九十]+)"
 
 
 def _parse_num(text: str) -> Optional[Decimal]:
@@ -65,6 +65,28 @@ def _parse_num(text: str) -> Optional[Decimal]:
         return to_decimal(text)
     val = _cn_to_int(text)
     return Decimal(val) if val is not None else None
+
+
+# 中文租期表述：合同常写"半年""一年半"而不是"6 个月""18 个月"。
+# 不抽到会让保租房租期下限规则判 unknown 而非 noncompliant（**漏报**）。
+# 形态拆开匹配："X年半" → X+0.5 年；裸"半年" → 0.5 年（无前导数字）。
+_TERM_HALF_YEARS = re.compile(
+    r"(?:租赁期限|租期)(?:为|：|:)?\s*(?P<v>[一二两三四五六七八九十\d]+)\s*年半"
+)
+_TERM_HALF_ONLY = re.compile(r"(?:租赁期限|租期)(?:为|：|:)?\s*半年")
+
+
+def _cn_half_years(text: str) -> Optional[Tuple[Decimal, str]]:
+    """"X年半" / "半年" → (年数, 命中原文)。未命中返回 None。"""
+    m = _TERM_HALF_YEARS.search(text)
+    if m:
+        base = _parse_num(m.group("v"))
+        if base is not None:
+            return base + Decimal("0.5"), m.group(0)
+    m = _TERM_HALF_ONLY.search(text)
+    if m:
+        return Decimal("0.5"), m.group(0)
+    return None
 
 
 def _find(text: str, patterns: List[str]) -> Optional[Tuple[Decimal, str]]:
@@ -135,7 +157,10 @@ def build_card(raw_text: str, clauses: List[Clause], pending: List[str]) -> Leas
     fields = {}
 
     # 租赁期限（年 / 月）
-    got = _find(
+    # "X年半"/"半年"必须先于通用"X 年"匹配：否则"一年半"会被通用式吃成"一 年"、
+    # 丢掉"半"→ 1.00 年（**静默取错值**，比抽不到更危险）。
+    half = _cn_half_years(text)
+    got = None if half else _find(
         text,
         [
             r"租赁期限(?:为|：|:)?\s*(?P<v>%s)\s*年" % num,
@@ -144,7 +169,12 @@ def build_card(raw_text: str, clauses: List[Clause], pending: List[str]) -> Leas
             r"租赁期限(?:为|：|:)?\s*(?P<v>%s)\s*月" % num,
         ],
     )
-    if got:
+    if half:
+        val, frag = half
+        fields["lease_term_years"] = Field(
+            "lease_term_years", q2(val), "年（中文表述）", "high", _evidence(text, clauses, frag)
+        )
+    elif got:
         val, frag = got
         if "月" in frag and "年" not in frag:
             val = q2(val / Decimal(12))

@@ -249,6 +249,11 @@ class Result:
             "ruleset_version": self.ruleset_version,
             "city": self.city,
             "overall_status": self.overall_status,
+            # 五态计数随 JSON 出口一并下发：`unknown`（没看到）与 `not_assessed`
+            # （没检查过）必须两条出口都可区分。只给 overall_status 时，读者看到
+            # "not_assessed" 无法判断是"全不适用"还是"有一半没能判定"。
+            "status_counts": self.status_counts,
+            "overall_summary": self.overall_summary(),
             "findings": [f.to_dict() for f in self.findings],
             "conditional_triggers": [f.to_dict() for f in self.conditional_triggers],
             "disabled_rules": list(self.disabled_rules),

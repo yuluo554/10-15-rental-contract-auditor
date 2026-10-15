@@ -4,7 +4,9 @@
 - **禁 stdlib random**：自研确定性 RNG（splitmix64），stdlib random 不承诺跨版本序列一致。
 - **禁 set 迭代序、禁系统时钟**：落盘产物无时间戳，两次运行逐字节一致。
 - 合成数据纪律：假姓名、假手机号（19900000000 号段），见 data/README.md §3。
-- 每个样例的植入真值显式登记在 `expect` / `also_expect`。
+- 每个样例的植入真值显式登记在 `expect` / `also_expect`（规则级判定真值），
+  以及 `expect_fields` / `expect_absent_fields`（要素抽取真值）——后者是 B1 算
+  **字段级 P/R/F1** 的独立来源；缺了它，B1 只能退化成一个布尔式准确率。
 
 用法：
     py -3.12 -X utf8 tools/gen_samples.py           # 生成 data/samples/*.json
@@ -17,6 +19,7 @@ import argparse
 import hashlib
 import json
 import sys
+from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
@@ -63,12 +66,46 @@ CONTRACT_TMPL = """{title}
 第五条 甲方{prepay_text}
 第六条 甲方应自合同订立之日起 {filing} 日内办理登记备案，并自合同订立之日起 {lodging} 个工作日内办理出租登记。
 第七条 租赁期满，甲方应在乙方返还住房后 {refund} 个工作日内退还押金。
-第八条 房屋及其附属设施的维修责任由甲方承担。
+{maintenance}"""
+
+# 维修条款可整条剔除，用于制造"无条件义务缺失 = noncompliant"形态（plan/04 §7 第 2 条）——
+# 缺了它，704 条要素完整性只被 compliant 覆盖，缺失分支等于没测。
+_MAINTENANCE_CLAUSE = "第八条 房屋及其附属设施的维修责任由甲方承担。\n"
+
+# 非合同文本样例的正文：一段名词释义。**刻意不含**任何租赁关键词
+# （租赁/出租/承租/租金/押金）与条号，故引擎判定为"不可识别的合同"：
+# 主体 unknown、房屋类型 ordinary，要素类规则判 unknown（"没看到"而非"缺失"）。
+# 用于覆盖"一条规则都不适用 → not_assessed，不输出 compliant"（plan/04 §7 第 3 条）。
+NON_CONTRACT_TEXT = """住房名词说明
+
+本节说明用于解释若干名词，不构成任何合同条款。
+"定金"指为担保履约而预先支付的一笔款项，具体数额由当事人约定。
+"保证金"指用于担保履约的款项。
+本节既非合同亦非法律意见，仅作名词释义之用。
 """
 
 
+
+def _q2(value: Decimal) -> Decimal:
+    """两位小数 ROUND_HALF_UP。
+
+    这里**刻意自写**而不 import `rca.parser.extract.q2`：真值必须与引擎**独立同源**
+    （plan/04 §5）——若真值借引擎的量化函数算，引擎量化路径改错时真值跟着一起错，
+    探活永远绿。
+    """
+    return value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+
 def _build_sample(
-    rng: SplitMix64, idx: int, city: str, affordable: bool = False, term_months: int = None
+    rng: SplitMix64,
+    idx: int,
+    city: str,
+    affordable: bool = False,
+    term_months: int = None,
+    omit_maintenance: bool = False,
+    force_enterprise: bool = None,
+    non_contract: bool = False,
 ) -> dict:
     is_bj = city == "北京"
     district = rng.choice(["朝阳区", "海淀区", "西城区"]) if is_bj else rng.choice(["浦东新区", "徐汇区", "静安区"])
@@ -88,7 +125,7 @@ def _build_sample(
     filing = rng.choice(["30", "30", "15", "45"])
     lodging = rng.choice(["3", "3", "5"])
     refund = rng.choice(["3", "3", "5", "7"])
-    enterprise = idx % 3 != 2
+    enterprise = idx % 3 != 2 if force_enterprise is None else force_enterprise
 
     lessor = COMPANIES[0 if is_bj else 1] if enterprise else "个人出租（%s）" % tenant
     prepay = rng.choice(["3", "3", "6"])
@@ -131,15 +168,72 @@ def _build_sample(
         filing=filing,
         lodging=lodging,
         refund=refund,
+        maintenance="" if omit_maintenance else _MAINTENANCE_CLAUSE,
     )
 
-    # 植入真值（主期望）：按规则数值与合同约定逐条推导
+    # 非合同文本样例：覆盖 plan/04 §7 第 3 条形态（"一条规则都不适用 → not_assessed，
+    # 不输出 compliant"）。现 10 份样例全部是可识别的合同，**没有一份能触发 not_assessed**，
+    # 该形态在基准里等于没测。
+    if non_contract:
+        text = NON_CONTRACT_TEXT
+
+    # 植入真值（主期望）：按规则数值与合同事实逐条推导
     expect = {}
     also = {}
     party = "enterprise" if enterprise else "individual"
+    lease_kind = "affordable" if affordable else "ordinary"
 
-    # 全国层：租期 20 年上限
+    if non_contract:
+        # 推导（不读引擎）：文本不可识别为合同 → 无条款、无要素；
+        # 主体/房屋类型未知（lease_kind 落到 ordinary）：
+        #   - 主体限定类（party=enterprise）→ 无法确定是否适用 → unknown（不是 skipped）
+        #   - 保租房专属（lease_kind=affordable）→ 房屋类型明确不满足 → skipped
+        #   - 其余（party=any）→ 适用，但要素/数值一律未观测 → unknown
+        # 故整体 not_assessed（有 unknown、无 compliant）。
+        expect["CN-LEASE-TERM-MAX"] = "unknown"
+        expect["CN-ELEMENT-COMPLETENESS"] = "unknown"
+        expect["CN-RENT-PAY-PERIOD"] = "unknown"
+        expect["CN-WRITTEN-FORM-6M"] = "unknown"
+        if is_bj:
+            expect["BJ-DEPOSIT-MAX-1M"] = "unknown"
+            expect["BJ-RENT-PREPAY-MAX-3M"] = "unknown"
+            expect["BJ-DEPOSIT-REFUND-3WD"] = "unknown"
+            expect["BJ-ENTERPRISE-FILING-30D"] = "unknown"
+            expect["BJ-ESCROW-DEPOSIT-TERMS"] = "unknown"
+            expect["BJ-FILING-30D"] = "unknown"
+            expect["BJ-LODGING-REG-3WD"] = "unknown"
+            expect["BJ-CONTRACT-ELEMENT-DEPOSIT"] = "unknown"
+            also["BJ-RENT-INTERVENTION"] = "reference"
+            also["BJ-ESCROW-RENT-SUPERVISION"] = "reference"
+        else:
+            expect["SH-FILING-30D"] = "unknown"
+            expect["SH-RENT-DEPOSIT-ESCROW"] = "unknown"
+            expect["SH-ENTERPRISE-FILING-30D"] = "unknown"
+            expect["SH-AFFORDABLE-DEPOSIT-1M"] = "skipped"
+            expect["SH-AFFORDABLE-TERM-MIN-1Y"] = "skipped"
+            also["SH-PENALTY-AFFORDABLE-RENT-DEPOSIT"] = "reference"
+            also["SH-BAN-5Y-AFFORDABLE-APPLY"] = "reference"
+        fields = {"has_deposit_clause": False, "rent_pay_period_declared": False}
+        absent = [
+            "lease_term_years", "deposit_months", "rent_prepay_months", "filing_days",
+            "lodging_reg_workdays", "deposit_refund_workdays", "enterprise_filing_days",
+        ]
+        return _finish(
+            is_bj, idx, city, party, lease_kind, text, expect, also, fields, absent,
+            "非合同文本（术语说明）：覆盖「一条规则都不适用 → not_assessed」形态",
+        )
+
+    # 全国层：租期 20 年上限 + 704 要素完整性 + 721 法定补充 + 707 书面形式。
+    # **每条生效规则都必须登记真值**——否则 B2 的全量对账会把它记成误报，
+    # 或者更糟：它从未被任何真值核过（"登记了但没验"）。
     expect["CN-LEASE-TERM-MAX"] = "compliant" if term_years <= 20 else "noncompliant"
+    # 704 条要素完整性：剔除维修条 → 缺失法定要素 → **无条件义务缺失 = noncompliant**
+    # （plan/04 §7 第 2 条；绝不能记成 skipped）。
+    expect["CN-ELEMENT-COMPLETENESS"] = "noncompliant" if omit_maintenance else "compliant"
+    # 721 条：合同载明"按月/按季支付" → 已约定 → compliant。
+    expect["CN-RENT-PAY-PERIOD"] = "compliant"
+    # 707 条：可识别的书面合同 → 要素（签署主体 + 期限）齐备 → compliant。
+    expect["CN-WRITTEN-FORM-6M"] = "compliant"
 
     if is_bj:
         if party == "enterprise":
@@ -185,15 +279,13 @@ def _build_sample(
         also["SH-BAN-5Y-AFFORDABLE-APPLY"] = "reference"
 
     term_desc = ("%d 个月" % term_months) if term_months is not None else ("%s 年" % term)
-    return {
-        "sample_id": "S-%s-%03d" % ("BJ" if is_bj else "SH", idx),
-        "city": city,
-        "party": party,
-        "lease_kind": "affordable" if affordable else "ordinary",
-        "contract_text": text,
-        "expect": dict(sorted(expect.items())),
-        "also_expect": dict(sorted(also.items())),
-        "notes": "合成样例：假姓名/假手机号；%s；租期%s、押金%s个月、单次收租%s个月、备案%s日、出租登记%s工作日、退押金%s工作日"
+    return _finish(
+        is_bj, idx, city, party, lease_kind, text, expect, also,
+        fields=_expected_fields(
+            term_months, term_years, deposit, prepay, filing, lodging, refund
+        ),
+        absent=["enterprise_filing_days"],
+        notes="合成样例：假姓名/假手机号；%s；租期%s、押金%s个月、单次收租%s个月、备案%s日、出租登记%s工作日、退押金%s工作日"
         % (
             "保障性租赁住房" if affordable else "普通租赁住房",
             term_desc,
@@ -203,6 +295,48 @@ def _build_sample(
             lodging,
             refund,
         ),
+    )
+
+
+def _expected_fields(term_months, term_years, deposit, prepay, filing, lodging, refund):
+    """真值侧的**要素抽取期望值**（B1 字段级 P/R/F1 的独立来源）。
+
+    与引擎完全独立：这里直接由生成器的入参（合同里写了什么）推期望值，
+    不调用引擎的抽取函数。引擎抽错时，这份期望不会跟着错——这是探活的前提
+    （plan/04 §5"期望必须有独立来源"）。
+    """
+    if term_months is None:
+        term_value = str(_q2(Decimal(term_years)))
+    else:
+        term_value = str(_q2(Decimal(term_months) / Decimal(12)))
+    return {
+        "lease_term_years": term_value,
+        "deposit_months": str(_q2(Decimal(deposit))),
+        "rent_prepay_months": str(_q2(Decimal(prepay))),
+        "filing_days": str(_q2(Decimal(filing))),
+        "lodging_reg_workdays": str(_q2(Decimal(lodging))),
+        "deposit_refund_workdays": str(_q2(Decimal(refund))),
+        "has_deposit_clause": True,
+        "rent_pay_period_declared": True,
+    }
+
+
+def _finish(is_bj, idx, city, party, lease_kind, text, expect, also, fields, absent, notes):
+    return {
+        "sample_id": "S-%s-%03d" % ("BJ" if is_bj else "SH", idx),
+        "city": city,
+        "party": party,
+        "lease_kind": lease_kind,
+        "contract_text": text,
+        "expect": dict(sorted(expect.items())),
+        "also_expect": dict(sorted(also.items())),
+        # 要素抽取真值：`expect_fields` 登记"应有值的字段 → 期望取值"，
+        # `expect_absent_fields` 登记"应观测不到（absent）的字段"。
+        # 二者是 B1 算 P/R/F1 的**独立来源**；缺了它 B1 只能退化成布尔式准确率
+        # （"有值就有证据"），precision / recall 无从谈起（plan/04 §1）。
+        "expect_fields": dict(sorted(fields.items())),
+        "expect_absent_fields": sorted(absent),
+        "notes": notes,
     }
 
 
@@ -218,6 +352,13 @@ def build_samples() -> list:
     # 下限类规则必须有违规样例，否则该分支永远只被 compliant 覆盖（等于没测）。
     out.append(_build_sample(rng, 9, "上海", affordable=True))
     out.append(_build_sample(rng, 10, "上海", affordable=True, term_months=9))
+    # 第 11 份：剔除维修条 → 704 条要素完整性判 **noncompliant**。
+    # 覆盖 plan/04 §7 第 2 条"无条件义务缺失 = noncompliant（不是 skipped）"——
+    # 此前 10 份样例的 704 条恒为 compliant，该形态在基准里等于没测。
+    out.append(_build_sample(rng, 11, "北京", omit_maintenance=True, force_enterprise=True))
+    # 第 12 份：非合同文本 → 无任何可判定项 → 整体 **not_assessed**（绝不输出 compliant）。
+    # 覆盖 plan/04 §7 第 3 条。此前无一份样例能触发 not_assessed。
+    out.append(_build_sample(rng, 12, "北京", non_contract=True))
     return out
 
 

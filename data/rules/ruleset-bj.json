@@ -54,14 +54,84 @@
     "max_runtime_seconds": 60
   },
   "coverage": {
-    "note": "规则包条目总数按 check_type 登记；真值库采样数由基准层填充（plan/04 §2.3）",
+    "note": "规则包条目总数（分母）+ 真值库采样数（分子）+ 采样清单；抽样覆盖、非逐条穷举",
+    "sampling_declaration": "抽样覆盖、非逐条穷举",
     "rule_totals_by_check_type": {
       "deadline_obligation": 3,
       "element_completeness": 2,
       "numeric_limit": 4,
       "text_prohibition": 1
     },
-    "rule_total": 10
+    "rule_total": 10,
+    "truth_sampling": {
+      "numeric_limit": {
+        "rule_total": 4,
+        "sampled_rules": 4,
+        "sampled_rule_ids": [
+          "BJ-DEPOSIT-MAX-1M",
+          "BJ-ENTERPRISE-FILING-30D",
+          "BJ-ESCROW-RENT-SUPERVISION",
+          "BJ-RENT-PREPAY-MAX-3M"
+        ],
+        "sample_ids": [
+          "S-BJ-001",
+          "S-BJ-002",
+          "S-BJ-003",
+          "S-BJ-004",
+          "S-BJ-011",
+          "S-BJ-012"
+        ]
+      },
+      "deadline_obligation": {
+        "rule_total": 3,
+        "sampled_rules": 3,
+        "sampled_rule_ids": [
+          "BJ-DEPOSIT-REFUND-3WD",
+          "BJ-FILING-30D",
+          "BJ-LODGING-REG-3WD"
+        ],
+        "sample_ids": [
+          "S-BJ-001",
+          "S-BJ-002",
+          "S-BJ-003",
+          "S-BJ-004",
+          "S-BJ-011",
+          "S-BJ-012"
+        ]
+      },
+      "element_completeness": {
+        "rule_total": 2,
+        "sampled_rules": 2,
+        "sampled_rule_ids": [
+          "BJ-CONTRACT-ELEMENT-DEPOSIT",
+          "BJ-ESCROW-DEPOSIT-TERMS"
+        ],
+        "sample_ids": [
+          "S-BJ-001",
+          "S-BJ-002",
+          "S-BJ-003",
+          "S-BJ-004",
+          "S-BJ-011",
+          "S-BJ-012"
+        ]
+      },
+      "text_prohibition": {
+        "rule_total": 1,
+        "sampled_rules": 1,
+        "sampled_rule_ids": [
+          "BJ-RENT-INTERVENTION"
+        ],
+        "sample_ids": [
+          "S-BJ-001",
+          "S-BJ-002",
+          "S-BJ-003",
+          "S-BJ-004",
+          "S-BJ-011",
+          "S-BJ-012"
+        ]
+      }
+    },
+    "truth_sampled_total": 10
   },
   "rules": [
     {
