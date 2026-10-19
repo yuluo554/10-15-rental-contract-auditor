@@ -28,7 +28,7 @@ from rca.report.markdown import render_markdown
 from rca.report.sections import coverage_rows, report_sections
 
 ROOT = Path(__file__).resolve().parents[1]
-DATA = ROOT / "data"
+DATA = ROOT / "src" / "rca" / "data"
 CITIES = ("北京", "上海", "全国")
 SAMPLES = DATA / "samples" / "samples.json"
 RULE_FILES = {

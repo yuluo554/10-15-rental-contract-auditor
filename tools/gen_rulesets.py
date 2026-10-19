@@ -7,8 +7,11 @@
 - 产物无时间戳、字典序稳定 → 两次运行逐字节一致（`--check` 守门）。
 
 用法：
-    py -3.12 -X utf8 tools/gen_rulesets.py            # 生成 data/rules/ruleset-*.json
+    py -3.12 -X utf8 tools/gen_rulesets.py            # 生成 src/rca/data/rules/ruleset-*.json
     py -3.12 -X utf8 tools/gen_rulesets.py --check     # 位级一致校验，输出 RULESETS_FROZEN_OK
+
+数据布局：随包数据在 `src/rca/data/`（rules / samples / knowledge/MANIFEST.json）；
+官方全文快照 `data/knowledge/raw/` 留在仓库根，**不随包**（版权红线）。
 """
 
 from __future__ import annotations
@@ -26,9 +29,10 @@ from rca.stdio import ensure_utf8_stdio  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 RAW = ROOT / "data" / "knowledge" / "raw"
-RULES_DIR = ROOT / "data" / "rules"
-SAMPLES = ROOT / "data" / "samples" / "samples.json"
-MANIFEST = ROOT / "data" / "knowledge" / "MANIFEST.json"
+DATA = ROOT / "src" / "rca" / "data"
+RULES_DIR = DATA / "rules"
+SAMPLES = DATA / "samples" / "samples.json"
+MANIFEST = DATA / "knowledge" / "MANIFEST.json"
 
 # ---------------------------------------------------------------------------
 # 规则定义表：数值与适用条件在此**一处定义**（引擎/报告/文档多处引用）。

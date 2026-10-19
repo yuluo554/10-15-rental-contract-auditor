@@ -28,7 +28,7 @@ import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-from rca.packaging import build_datas  # noqa: E402
+from rca.packaging import BUNDLE_DATA_DIR, build_datas, package_data_dir  # noqa: E402
 from rca.stdio import ensure_utf8_stdio  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -40,8 +40,13 @@ FORBIDDEN_TOP_LEVEL = ("plan", "tests", "_private", ".git", "src", "tools")
 # 只查 CLI：GUI 目标按 spec 保留（Qt 依赖面更宽，且非本次零上传承诺的验证对象）。
 FORBIDDEN_NETWORK_MODULES = ("_ssl", "libssl", "libcrypto", "_socket", "_hashlib")
 
-# 演示样例（README/验收共用的那份输入）
-DEMO_SAMPLE = "data/samples/demo-contract-bj.txt"
+# 演示样例（README/验收共用的那份输入）——随包数据在 `src/rca/data/` 下
+DEMO_SAMPLE = "samples/demo-contract-bj.txt"
+
+
+def demo_sample_path() -> Path:
+    """演示样例在仓库内的绝对路径（包内数据根之下）。"""
+    return package_data_dir(ROOT) / DEMO_SAMPLE
 
 
 def _exe_names() -> dict:
@@ -77,6 +82,19 @@ def find_embedded_data(dist: Path) -> Path | None:
     return None
 
 
+def expected_packed_entries() -> dict:
+    """{产物内相对 data/ 的路径: 仓库源文件}——白名单的单一投影。
+
+    产物内布局由 `rca.packaging.build_datas()` 的目标目录决定
+    （`data/<子目录>/<文件名>`）；仓库源文件在包内数据根 `src/rca/data/`。
+    """
+    out = {}
+    for src, dest in build_datas(ROOT):
+        rel = (Path(dest).relative_to(BUNDLE_DATA_DIR) / Path(src).name).as_posix()
+        out[rel] = Path(src)
+    return out
+
+
 def check_embedded_data_sha256(dist: Path) -> list:
     """内嵌数据逐份 sha256 与仓库冻结件对账，且**入包集合 == 白名单**。
 
@@ -91,18 +109,18 @@ def check_embedded_data_sha256(dist: Path) -> list:
         return ["包内未找到 data/（内嵌数据缺失）"]
 
     expected = set()
-    for rel, _dest in build_datas(ROOT):
-        src = Path(rel)
-        rel_posix = src.relative_to(ROOT).as_posix()
-        expected.add(rel_posix)
-        packed = embedded / Path(rel_posix).relative_to("data")
+    for src_abs, dest in build_datas(ROOT):
+        src = Path(src_abs)
+        rel_in_data = (Path(dest).relative_to(BUNDLE_DATA_DIR) / src.name).as_posix()
+        expected.add("data/" + rel_in_data)
+        packed = embedded / rel_in_data
         if not packed.is_file():
-            problems.append("内嵌数据缺失: %s" % rel_posix)
+            problems.append("内嵌数据缺失: data/%s" % rel_in_data)
             continue
         want = hashlib.sha256(src.read_bytes()).hexdigest()
         got = hashlib.sha256(packed.read_bytes()).hexdigest()
         if want != got:
-            problems.append("内嵌数据 sha256 失配: %s（包内为旧数据）" % rel_posix)
+            problems.append("内嵌数据 sha256 失配: data/%s（包内为旧数据）" % rel_in_data)
 
     actual = {
         "data/" + p.relative_to(embedded).as_posix()
@@ -185,7 +203,7 @@ def check_frozen_check_matches_source(dist: Path, exe: Path) -> list:
     from rca.cli import EXIT_NONCOMPLIANT
 
     problems = []
-    demo = ROOT / DEMO_SAMPLE
+    demo = demo_sample_path()
     if not demo.is_file():
         return ["演示样例缺失: %s" % DEMO_SAMPLE]
 
@@ -249,7 +267,7 @@ def check_frozen_report_no_external(dist: Path, exe: Path) -> list:
     内嵌数据的组合产物也没有外链——故这里在真 exe 的真报告上复跑。
     """
     problems = []
-    demo = ROOT / DEMO_SAMPLE
+    demo = demo_sample_path()
     if not demo.is_file():
         return ["演示样例缺失: %s" % DEMO_SAMPLE]
 

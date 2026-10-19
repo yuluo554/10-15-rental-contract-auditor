@@ -11,7 +11,7 @@ from rca.benchmark.runner import run_benchmarks
 from rca.engine.pipeline import compute_result
 
 ROOT = Path(__file__).resolve().parents[1]
-DATA = ROOT / "data"
+DATA = ROOT / "src" / "rca" / "data"
 
 
 def test_all_suites_pass(data_dir):

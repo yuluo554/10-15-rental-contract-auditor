@@ -4,6 +4,15 @@ on:
   push:
   pull_request:
 
+# 最小权限：CI 只需要读仓库（写权限留给 Release 流程，不在本 workflow 内）。
+permissions:
+  contents: read
+
+# 同一 ref 的并发推送取消旧 run：避免排队堆积（tag push 与分支 push 各自独立计）
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     name: "test (${{ matrix.os }} / py${{ matrix.python-version }})"
@@ -11,12 +20,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # floor 已抬到 >=3.12（3.8/3.9 已 EOL、3.10 到期）：双 OS 单解释器
         os: [windows-latest, ubuntu-latest]
-        python-version: ["3.8", "3.12"]
-        exclude:
-          # ubuntu 新镜像对 py3.8 支持存疑；旧解释器只在 windows 守
-          - os: ubuntu-latest
-            python-version: "3.8"
+        python-version: ["3.12"]
 
     env:
       # 编码三层加固的第一层：覆盖本 job 的全部步骤
@@ -28,13 +34,13 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           # 脱敏审计的历史扫描依赖全量历史；浅克隆会静默削弱成空验
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -50,6 +56,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e ".[dev,gui]"
+          python -c "import PySide6, yaml; print('PySide6', PySide6.__version__)"
 
       - name: Run full test suite
         run: python -m pytest -q -rs
@@ -80,6 +87,84 @@ jobs:
           python -m rca.cli selftest --out selftest.json
           test -s selftest.json
 
+  install-smoke:
+    # D1 回归防线：**非 editable 安装**必须能用。
+    # 此前四个 job 全部 `pip install -e`，数据又在包外 → 本地/CI 全绿，
+    # 而 `pip install <wheel>` 后 `rca rules` / `rca bench` 直接 exit 2。
+    # 这里走黑盒链路（建 wheel → 全新 venv → 装 → 中立目录跑），
+    # 不依赖测试套件自身的正确性。
+    name: "install-smoke (windows-latest / py3.12)"
+    runs-on: windows-latest
+    needs: test
+    env:
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: "utf-8"
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Build wheel
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          # 清掉上一轮的增量元数据：SOURCES.txt 里的陈旧 data/ 条目会让
+          # "删了 package-data 也照样有数据"，门禁就不可证伪了。
+          if (Test-Path src/rca.egg-info) { Remove-Item -Recurse -Force src/rca.egg-info }
+          if (Test-Path build) { Remove-Item -Recurse -Force build }
+          python -m pip wheel . --no-deps -w wheelhouse
+          if (-not (Get-ChildItem wheelhouse -Filter *.whl)) { throw "未产出 wheel" }
+
+      - name: Assert wheel ships data files
+        shell: pwsh
+        run: |
+          python -c "import glob, zipfile; p = glob.glob('wheelhouse/*.whl')[0]; n = [x for x in zipfile.ZipFile(p).namelist() if '/data/' in x]; print('data entries:', len(n)); [print(' ', x) for x in sorted(n)]; assert len(n) > 0, 'wheel 里一个数据文件都没有（D1 回归）'"
+
+      - name: Create clean venv and install wheel
+        shell: pwsh
+        run: |
+          python -m venv verify-env
+          ./verify-env/Scripts/python.exe -m pip install --no-index (Get-ChildItem wheelhouse -Filter *.whl)[0].FullName
+
+      - name: Run installed CLI from a neutral directory
+        # 必须离开仓库树：CWD 上溯会命中仓库 src/rca/data，"装态"验了个寂寞。
+        shell: pwsh
+        run: |
+          $env:PY = Join-Path $env:GITHUB_WORKSPACE "verify-env/Scripts/python.exe"
+          $env:RCA = Join-Path $env:GITHUB_WORKSPACE "verify-env/Scripts/rca.exe"
+          $pkg = & $env:PY -c "import rca, os; print(os.path.dirname(rca.__file__))"
+          $sample = Join-Path $pkg "data/samples/demo-contract-bj.txt"
+          if (-not (Test-Path $sample)) { throw "装态未带演示样例: $sample" }
+
+          $neutral = Join-Path $env:RUNNER_TEMP "neutral"
+          New-Item -ItemType Directory -Force -Path $neutral | Out-Null
+          Set-Location $neutral
+
+          & $env:RCA rules --city 北京 > rules.txt 2>&1
+          $rcRules = $LASTEXITCODE
+          & $env:RCA bench > bench.txt 2>&1
+          $rcBench = $LASTEXITCODE
+          & $env:RCA check --input $sample --city 北京 > check.txt 2>&1
+          $rcCheck = $LASTEXITCODE
+
+          Get-Content rules.txt | Select-Object -First 5
+          Get-Content bench.txt | Select-Object -Last 5
+          Get-Content check.txt | Select-Object -First 3
+          Write-Host "rules exit=$rcRules / bench exit=$rcBench / check exit=$rcCheck"
+
+          if ($rcRules -ne 0) { throw "装态 rules 退出码 $rcRules（期望 0）" }
+          if ($rcBench -ne 0) { throw "装态 bench 退出码 $rcBench（期望 0）" }
+          if (-not (Select-String -Path bench.txt -Pattern "BENCH_OK" -Quiet)) { throw "装态 bench 未输出 BENCH_OK" }
+          # check 退出码 1 是既定语义（检出不符合），不是失败
+          if ($rcCheck -ne 1) { throw "装态 check 退出码 $rcCheck（期望 1）" }
+
   package:
     # M5 交付判据：**真构建 + 产物级验收**。只在 windows/3.12 跑一次
     # （PyInstaller ≥6 是打 GUI 的硬前提；spec 的 datas/入口/排除项差异
@@ -93,12 +178,12 @@ jobs:
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 

@@ -21,7 +21,7 @@ from rca.model import (
     STATUS_UNKNOWN,
 )
 
-DATA = Path(__file__).resolve().parents[1] / "data"
+DATA = Path(__file__).resolve().parents[1] / "src" / "rca" / "data"
 
 
 def _by_id(result):

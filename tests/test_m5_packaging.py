@@ -360,16 +360,20 @@ def test_verify_package_detects_forbidden_network_module(tmp_path):
     assert verify_package.check_no_network_modules(dist) == []
 
 
-def test_verify_package_detects_embedded_data_mismatch(tmp_path, monkeypatch):
-    """负向对照：包内数据与仓库冻结件不一致，校验必须报出来。"""
-    dist = tmp_path / "dist"
+def _lay_embedded_data(dist: Path) -> Path:
+    """按白名单在 dist 内部署一份"与仓库一致"的内嵌数据（产物内布局）。"""
     embedded = dist / "_internal" / "data"
-    for rel, _dest in verify_package.build_datas(verify_package.ROOT):
-        src = Path(rel)
-        rel_in_data = src.relative_to(verify_package.ROOT).relative_to("data")
+    for rel_in_data, src in verify_package.expected_packed_entries().items():
         target = embedded / rel_in_data
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(src.read_bytes())
+    return embedded
+
+
+def test_verify_package_detects_embedded_data_mismatch(tmp_path, monkeypatch):
+    """负向对照：包内数据与仓库冻结件不一致，校验必须报出来。"""
+    dist = tmp_path / "dist"
+    embedded = _lay_embedded_data(dist)
     assert verify_package.check_embedded_data_sha256(dist) == []
 
     victim = embedded / "rules" / "ruleset-bj.json"
@@ -381,12 +385,7 @@ def test_verify_package_detects_embedded_data_mismatch(tmp_path, monkeypatch):
 def test_verify_package_detects_unlisted_extra_data_file(tmp_path):
     """负向对照：包内混入白名单外的数据文件 → 必须报出来（防多余东西进包）。"""
     dist = tmp_path / "dist"
-    embedded = dist / "_internal" / "data"
-    for rel, _dest in verify_package.build_datas(verify_package.ROOT):
-        src = Path(rel)
-        target = embedded / src.relative_to(verify_package.ROOT).relative_to("data")
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(src.read_bytes())
+    embedded = _lay_embedded_data(dist)
     assert verify_package.check_embedded_data_sha256(dist) == []
 
     (embedded / "rules" / "ruleset-secret.json").write_bytes(b"{}")
@@ -428,15 +427,9 @@ def _fake_dist(tmp_path: Path, corrupt_rel: str | None = None) -> Path:
     dist = tmp_path / "dist" / "rca-cli"
     (dist / "_internal").mkdir(parents=True)
     (dist / "rca-cli.exe").write_bytes(b"fake")
-    embedded = dist / "_internal" / "data"
-    for src, _dest in verify_package.build_datas(verify_package.ROOT):
-        srcp = Path(src)
-        rel = srcp.relative_to(verify_package.ROOT).relative_to("data")
-        target = embedded / rel
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(srcp.read_bytes())
+    embedded = _lay_embedded_data(dist)
     if corrupt_rel:
-        victim = embedded / Path(corrupt_rel).relative_to("data")
+        victim = embedded / corrupt_rel
         victim.write_bytes(victim.read_bytes().replace(b'"city"', b'"cty"', 1))
     return dist
 
@@ -470,7 +463,7 @@ def test_verify_end_to_end_reports_embedded_data_mismatch(tmp_path, monkeypatch,
 
     变异 M10（校验脱钩白名单，只查第一份）与 M9（摘掉校验调用）在这里转红。
     """
-    dist = _fake_dist(tmp_path, corrupt_rel="data/rules/ruleset-sh.json")
+    dist = _fake_dist(tmp_path, corrupt_rel="rules/ruleset-sh.json")
     _patch_exe_calls(monkeypatch)
     monkeypatch.setattr(verify_package, "check_frozen_check_matches_source",
                         lambda d, e: [])

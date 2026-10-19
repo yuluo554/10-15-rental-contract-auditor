@@ -2,9 +2,12 @@
 
 [![CI](https://github.com/yuluo554/10-15-rental-contract-auditor/actions/workflows/ci.yml/badge.svg)](https://github.com/yuluo554/10-15-rental-contract-auditor/actions/workflows/ci.yml)
 
-**状态**：`v0.1.0` 已发布（[Release](https://github.com/yuluo554/10-15-rental-contract-auditor/releases/tag/v0.1.0)）。
-CI 在 windows（py3.8 / 3.12）与 ubuntu（py3.12）矩阵 + `package` job（真构建 + 产物级验收）
-全绿。Windows x64 免安装发行包见 Release 附件（CLI / GUI 双入口）。
+**状态**：`v0.1.0` 已发布（[Release](https://github.com/yuluo554/10-15-rental-contract-auditor/releases/tag/v0.1.0)）；
+`v0.1.1` 待发布（修掉"非 editable 安装读不到数据"并新增装态门禁）。
+
+CI：`test`（windows / ubuntu，py3.12）+ `install-smoke`（非 editable 安装冒烟）
++ `package`（真构建 + 产物级验收）。
+Windows x64 免安装发行包见 Release 附件（CLI / GUI 双入口）。
 
 > **把分散在民法典与城市条例里的数值规则，做成可核验的合同体检；每条判定挂法条原文锚点。**
 >
@@ -50,7 +53,7 @@ flowchart LR
 ## 快速开始
 
 ```bash
-# 需要 Python 3.8+（本机开发用 3.12）
+# 需要 Python 3.12+
 python -m venv .venv
 # Windows: .venv\Scripts\activate     POSIX: source .venv/bin/activate
 python -m pip install -U pip
@@ -64,13 +67,13 @@ python -m pip install -e ".[dev,gui]"
 
 ```bash
 # 单件体检（--city 取 北京 / 上海 / 全国）
-python -m rca.cli check --input data/samples/demo-contract-bj.txt --city 北京
+python -m rca.cli check --input src/rca/data/samples/demo-contract-bj.txt --city 北京
 
 # 机读输出
-python -m rca.cli check --input data/samples/demo-contract-bj.txt --city 北京 --json
+python -m rca.cli check --input src/rca/data/samples/demo-contract-bj.txt --city 北京 --json
 
 # 导出报告（Markdown + XLSX 双轨，同输入逐字节一致）
-python -m rca.cli report --input data/samples/demo-contract-bj.txt --city 北京 --out out/
+python -m rca.cli report --input src/rca/data/samples/demo-contract-bj.txt --city 北京 --out out/
 
 # 查看规则包与门控状态
 python -m rca.cli rules --city 北京
@@ -152,7 +155,7 @@ FP = 期望 absent 却抽到值，或取值不符；FN = 期望有值却抽不�
 并声明"抽样覆盖、非逐条穷举"；`rules --city X` 与导出报告都可见。**只写分母就是假覆盖**——
 本项目此前连分子都没有，M4 补齐。
 
-**门槛随规则包下发**（数据非代码，见 `data/rules/ruleset-*.json` 的 `benchmark_thresholds`），
+**门槛随规则包下发**（数据非代码，见 `src/rca/data/rules/ruleset-*.json` 的 `benchmark_thresholds`），
 基准层只读、缺失即报配置错误——调门槛不改代码。
 
 **每套件配可证伪探活**：注入缺陷（篡改真值 / 注入坏引用规则 / 改规则边界）后，
@@ -173,14 +176,14 @@ src/rca/
   cli_entry.py     冻结态 CLI 入口（绝对导入的薄入口，供 PyInstaller）
   gui_entry.py     冻结态 GUI 入口（含 `--selftest` 脚本化验收通路）
   packaging.py     打包白名单单一事实源
-data/
-  knowledge/raw/   官方全文快照（字节冻结，.gitattributes 标 -text）
-  knowledge/MANIFEST.json  快照台账（URL/抓取日/sha256）
+src/rca/data/     随包数据（**进 wheel**，装态直接可用）
   rules/           城市规则包（生成器冻结产物，禁手改）
   samples/         合成合同样例 + 植入真值
+  knowledge/MANIFEST.json  快照台账（URL/抓取日/sha256）
+data/knowledge/raw/ 官方全文快照（字节冻结，.gitattributes 标 -text）——版权红线，**不随包**
 tools/             抓取/生成/门禁/审计/打包脚本
 plan/              计划文档 00–06 与跨会话交接快照
-tests/             283 项测试（含全部守门）
+tests/             291 项测试（含全部守门）
 ```
 
 ## 数据来源
@@ -199,12 +202,10 @@ tests/             283 项测试（含全部守门）
 
 - **`py` 启动器会无视 venv**（Windows）：venv 段落一律用 `python -m pip ...`，
   不要用 `py -m pip ...`（后者装到系统 Python）。
-- **老解释器上的重依赖要写上界**：PySide6 6.7+ 元数据要求 Python ≥3.9，
-  故本项目锁定 `PySide6>=6.6,<6.7` 以兼容 3.8 通道。
 - **打 GUI 的 PyInstaller 必须 ≥6**：5.x 扫描 PySide6 字节码会确定性崩溃
   （`Instruction object is not iterable`）。发布构建固定在装了 PyInstaller 6 的 3.12 通道。
-- **`Path.write_text(newline=)` 是 Python 3.10+ 参数**：3.8 通道上会 TypeError；
-  本项目生成器一律走 `write_bytes`（也是 EOL 门要求的形态）。
+- **`Path.write_text(newline=)` 是 Python 3.10+ 参数**：本项目生成器一律走
+  `write_bytes`（同时保证跨平台逐字节一致，也是 EOL 门要求的形态）。
 - **offscreen 平台拿不到系统字体**：中文会渲染成方块，GUI 启动时按环境变量
   推导字体目录显式注册（不写死盘符）。
 

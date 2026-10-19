@@ -9,7 +9,7 @@
   **字段级 P/R/F1** 的独立来源；缺了它，B1 只能退化成一个布尔式准确率。
 
 用法：
-    py -3.12 -X utf8 tools/gen_samples.py           # 生成 data/samples/*.json
+    py -3.12 -X utf8 tools/gen_samples.py           # 生成 src/rca/data/samples/*.json
     py -3.12 -X utf8 tools/gen_samples.py --check    # 位级一致校验 → SAMPLES_FROZEN_OK
 """
 
@@ -26,7 +26,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from rca.stdio import ensure_utf8_stdio  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
-SAMPLES_DIR = ROOT / "data" / "samples"
+SAMPLES_DIR = ROOT / "src" / "rca" / "data" / "samples"
 
 _MASK = (1 << 64) - 1
 

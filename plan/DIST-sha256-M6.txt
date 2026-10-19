@@ -8,11 +8,15 @@
 #   - **exe 构建本身不承诺跨机字节一致**（PyInstaller 会嵌入时间戳/路径），
 #     故 exe 的 sha256 只是"本机这次构建"的指纹，不作跨机比对承诺。
 #   - 发布附件即下面两个 zip；下载后 sha256 必须与本台账逐位一致。
+#   - RELEASE ASSET 两行记**附件名**（不是本地 `_scratch/` 路径）：`_scratch/` 在
+#     `.gitignore` 内，换机或清掉该目录后台账里的路径就不存在了；附件名在任何机器上都对得上
+#     GitHub Release。取文件：gh release download v0.1.0 --repo yuluo554/10-15-rental-contract-auditor
+#   - 前两行 exe 的路径同理只是**本机构建产物**的引用（口径见上一条：不作跨机比对）。
 #
 # 生成时间（UTC）与构建基线见 plan/RELEASE-M6.md。
 efa81106d325fe6b400365b29b257608f28cce15ffc711511b3b90931eab09e9  1783625  dist/rca-cli/rca-cli.exe  # exe(build artifact, this machine only)
 2b7b3844a9730e2aca43e72676c0d8c26a8f91b1d3c94d6252807360fc509059  1790884  dist/rca-gui/rca-gui.exe  # exe(build artifact, this machine only)
-24d4fefe37f1b4a5da6ef02e97fc0217e8119c7974145a2361a09ba447b46507  11928127  _scratch/release/rca-cli-win64.zip  # RELEASE ASSET
-02b1f6e7664bcc6291057b9172bb9651b28de7d344e8600e6a1a027f184a8785  116266441  _scratch/release/rca-gui-win64.zip  # RELEASE ASSET
+24d4fefe37f1b4a5da6ef02e97fc0217e8119c7974145a2361a09ba447b46507  11928127  rca-cli-win64.zip（Release 附件）  # RELEASE ASSET
+02b1f6e7664bcc6291057b9172bb9651b28de7d344e8600e6a1a027f184a8785  116266441  rca-gui-win64.zip（Release 附件）  # RELEASE ASSET
 
 # 重放：python -c "import hashlib,pathlib; [print(hashlib.sha256(pathlib.Path(f).read_bytes()).hexdigest(), f) for f in (...)]"

@@ -29,7 +29,7 @@ from rca.model import ALL_STATUSES
 from rca.report.sections import report_sections
 
 ROOT = Path(__file__).resolve().parents[1]
-DATA = ROOT / "data"
+DATA = ROOT / "src" / "rca" / "data"
 CITIES = ("北京", "上海", "全国")
 
 

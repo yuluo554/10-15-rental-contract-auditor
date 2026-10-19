@@ -276,3 +276,70 @@ py -3.12 -X utf8 -m pytest -q
 # CI 对账
 gh run list --repo yuluo554/10-15-rental-contract-auditor
 ```
+
+---
+
+## 10. 发布后修订：非 editable 安装读不到数据（D1，2026-10-20）
+
+> 本节记录 v0.1.0 发布**之后**对本仓做的一次修订。**tag `v0.1.0` / Release / 两个 zip
+> 附件均未改动**（仍是 `ce62df0` 与基线 sha256），本节只记录源码侧的缺陷与修复。
+
+### 10.1 缺陷（实测）
+
+`pyproject.toml` 只有 `package-dir` + `packages.find`，**无 `package-data`**；数据在
+仓库根 `data/`（包外）。故 `pip install <wheel>` 后：
+
+```
+rca --version            → rca 0.1.0                                    exit 0
+rca rules --city 北京     → 错误：未找到 data/ 目录；可用 --data 或 RCA_DATA_DIR 指定   exit 2
+rca bench                → 配置错误：未找到 data/ 目录…                    exit 2
+```
+
+wheel 实测 **66,247 B / 31 条目 / data 条目 0**。
+
+**为什么本地与 CI 都是绿的**：CI 的 `test`（3 job）与 `package` job 全部走
+`pip install -e`（`package` job 是 `-e ".[gui,build]"`）——editable 安装下
+`paths.py` 靠开发树上溯命中仓库根 `data/`，一路正常。**没有任何 job 走
+`pip wheel` / `pip install <wheel>`**，这正是"测试全绿 ≠ 装完能用"。
+
+**exe 形态不受影响**：`rca/packaging.py` 是打包白名单单一事实源，
+`verify_package.py` 做内嵌数据逐份 sha256 对账 + `data_dir_in_dist: true` +
+冻结态判定与源码对账。**缺陷只在 wheel 形态。**
+
+正面之处（保留）：降级形态是**干净错误消息 + exit 2 + 补救路径提示**，不是裸 traceback。
+
+### 10.2 修复
+
+| # | 动作 |
+|---|---|
+| 1 | 数据布局迁移：`data/rules` `data/samples` `data/knowledge/MANIFEST.json` → `src/rca/data/`（`git mv`，**字节未变**）。**`data/knowledge/raw/` 留在仓库根、不随包**（版权红线，也是法条逐字断言的原文依据） |
+| 2 | `rca/paths.py` 加**包内分支**（`Path(__file__).parent / "data"`），排在"开发树上溯"**之前**；`--data` / `RCA_DATA_DIR` 的前置优先级**未动**；判别特征改成 `rules/` 子目录（包内不带 `knowledge/raw/`，不能用它判别） |
+| 3 | `rca/packaging.py`：`WHITELIST` 改相对**包内数据根**，新增 `DATA_SUBDIR` / `BUNDLE_DATA_DIR` / `package_data_dir()`；产物内目标目录仍是 `data/<子目录>`（与 `paths.py` 冻结态分支的约定一致） |
+| 4 | `pyproject.toml` 加 `[tool.setuptools.package-data]`（5 类文件：规则包 3 + 样例 2 + 快照台账 1） |
+| 5 | 全量同步写死 `data/` 的地方：`tools/gen_rulesets.py`、`gen_samples.py`、`fetch_sources.py`、`check_literals.py`、`verify_package.py`、`tests/*`、README 目录树与示例命令 |
+| 6 | **演示样例进 wheel**：新增 `packaging.WHEEL_EXTRA`（只含 `samples/demo-contract-bj.txt`），wheel 集合 = `WHITELIST`（exe 运行必需）+ `WHEEL_EXTRA`（装态素材）。**没有**把 demo 放进 `WHITELIST`——那会让"入包集合 == 白名单"的 exe 断言把既有产物判红（实测：`verify_package.py --dist dist/rca-cli` 报"内嵌数据缺失: data/samples/demo-contract-bj.txt"）。两个集合的**超集方向**由 `tests/test_install_smoke.py` 断言 |
+
+装态实测（全新 venv + `pip install <wheel>` + **中立目录**）：
+
+```
+wheel: rca-0.1.0-py3-none-any.whl  80,690 B  37 条目  data 条目 6
+rca --version  exit 0
+rca rules --city 北京   exit 0（条目数：10，与冻结规则包一致）
+rca bench               exit 0（输出 BENCH_OK）
+rca check --input <site-packages>/rca/data/samples/demo-contract-bj.txt --city 北京
+                        exit 1（"检出不符合"，与源码态同语义）
+```
+
+### 10.3 回归门禁
+
+| # | 门禁 | 说明 |
+|---|---|---|
+| 1 | `tests/test_install_smoke.py`（7 项） | 真建 wheel → 真建 venv → 真装 → 中立目录跑 `rules`/`bench`/`check`；断言**规则条数**、`BENCH_OK`、退出码；另含 2 项秒级静态守门（package-data 覆盖白名单、包内分支排在开发树之前） |
+| 2 | CI 新 job `install-smoke`（windows + 3.12） | 黑盒链路，不依赖测试套件自身正确性；断言 wheel 真的带数据、`rules` exit 0、`bench` 含 `BENCH_OK`、`check` exit 1 |
+| 3 | `tests/test_ci_wiring.py::test_ci_has_install_smoke_job` | 锁死"至少一个 job 走 wheel 通路"，且执行行不得出现 `pip install -e` |
+| 4 | **负控已验** | 删掉 `[tool.setuptools.package-data]` 后：`test_install_smoke.py` **5 红 / 2 绿** |
+
+> **负控踩到的坑（重要）**：setuptools 的 `src/rca.egg-info/SOURCES.txt` 是**增量文件**。
+> 本地反复构建后它会留着上一轮的 `data/` 条目——那样**即使删掉 `package-data`，
+> wheel 里照样有数据**，门禁看起来"无效"。本轮的处置是 fixture 在构建前**清掉
+> `src/rca.egg-info/` 与 `build/`**（CI 是干净 clone，不受影响；但门禁必须在本地也可证伪）。

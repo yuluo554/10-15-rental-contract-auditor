@@ -91,3 +91,44 @@ def test_step_names_with_colon_are_quoted():
                     "%s: name 值含「冒号+空格」但未加引号 → 整份 workflow 非法: %s"
                     % (path.name, line.strip())
                 )
+
+
+# --------------------------------------------------------------------------
+# 装态门禁的 CI 接线（D1 回归防线）
+# --------------------------------------------------------------------------
+
+def test_ci_has_install_smoke_job():
+    """必须有**非 editable** 安装的 CI job。
+
+    D1 的成因就是"四个 job 全部 `pip install -e`"：数据在包外也看不出问题。
+    这条断言锁死"至少有一个 job 走 wheel 通路"。
+    """
+    data = yaml.safe_load(WORKFLOWS[0].read_text(encoding="utf-8"))
+    jobs = data["jobs"]
+    assert "install-smoke" in jobs, (
+        "CI 缺少 install-smoke job（非 editable 安装没有任何 CI 覆盖 → D1 会复发）"
+    )
+
+    text = WORKFLOWS[0].read_text(encoding="utf-8")
+    job_block = text[text.index("install-smoke:"):]
+    # 截到下一个 job（同缩进的 `  <name>:`）
+    for marker in ("\n  package:", "\n  test:"):
+        if marker in job_block:
+            job_block = job_block[: job_block.index(marker)]
+
+    assert "pip wheel" in job_block, "install-smoke job 未真建 wheel"
+    assert "venv" in job_block, "install-smoke job 未建独立 venv"
+
+    # 只查**执行行**：注释里解说缺陷成因时会写到 `pip install -e`，按字面 grep 会误红
+    commands = [
+        ln.strip()
+        for ln in job_block.splitlines()
+        if ln.strip() and not ln.strip().startswith("#")
+    ]
+    editable = [ln for ln in commands if "pip install -e" in ln or '-e ".[' in ln]
+    assert not editable, (
+        "install-smoke job 仍在用 editable 安装（验不出装态）: %s" % editable
+    )
+    # 断言落在业务输出上，不是"命令能启动"
+    assert "BENCH_OK" in job_block, "install-smoke 未断言 BENCH_OK"
+    assert "rules --city" in job_block, "install-smoke 未跑 rules"

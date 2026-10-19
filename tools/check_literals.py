@@ -166,7 +166,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.data:
         data_dir = Path(args.data)
     else:
-        data_dir = ROOT / "data"
+        data_dir = ROOT / "src" / "rca" / "data"
     return cmd_selftest(data_dir) if args.selftest else cmd_scan(data_dir)
 
 

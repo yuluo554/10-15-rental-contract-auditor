@@ -140,7 +140,7 @@ def test_gui_uses_same_data_dir_as_cli(tmp_path):
     SENTINEL = "SENTINEL-DATA-DIR-M5"
     alt = tmp_path / "data"
     for sub in ("rules", "knowledge", "samples"):
-        shutil.copytree(ROOT / "data" / sub, alt / sub)
+        shutil.copytree(ROOT / "src" / "rca" / "data" / sub, alt / sub)
     rs_path = alt / "rules" / "ruleset-bj.json"
     rs = json.loads(rs_path.read_text(encoding="utf-8"))
     hit = [r for r in rs["rules"] if r["rule_id"] == "BJ-FILING-30D"]
@@ -149,7 +149,7 @@ def test_gui_uses_same_data_dir_as_cli(tmp_path):
     rs_path.write_bytes(json.dumps(rs, ensure_ascii=False, indent=2).encode("utf-8"))
 
     # 前提自检：哨兵在仓库规则包里不存在（否则"出现"证明不了用的是副本）
-    assert SENTINEL not in (ROOT / "data" / "rules" / "ruleset-bj.json").read_text(
+    assert SENTINEL not in (ROOT / "src" / "rca" / "data" / "rules" / "ruleset-bj.json").read_text(
         encoding="utf-8"
     )
 

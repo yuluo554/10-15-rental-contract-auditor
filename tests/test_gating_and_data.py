@@ -22,7 +22,7 @@ from rca.engine.ruleset import (
 from rca.paths import find_data_dir
 
 ROOT = Path(__file__).resolve().parents[1]
-DATA = ROOT / "data"
+DATA = ROOT / "src" / "rca" / "data"
 
 
 def test_all_rules_have_clause_and_quote():

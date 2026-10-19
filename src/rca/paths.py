@@ -1,6 +1,11 @@
 """数据目录定位（含 PyInstaller 冻结态分支）。
 
-优先级：显式参数 > 环境变量 RCA_DATA_DIR > 冻结态内嵌 > 开发树上溯。
+优先级：显式参数 > 环境变量 RCA_DATA_DIR > 冻结态内嵌 > 包内数据（源码/装态）> 开发树旧布局。
+
+**包内数据分支（`rca/data/`）是装态唯一可用通路**：数据随 wheel 分发，
+装在 `site-packages/rca/data`；editable/源码态下同一路径解析到 `src/rca/data`。
+缺了它，`pip install <wheel>` 后 `rca rules` 会直接 exit 2。
+
 冻结分支必须显式处理，否则 exe 会回头读开发机的仓库 data/（"内嵌数据验了个寂寞"）。
 """
 
@@ -10,7 +15,7 @@ import os
 import sys
 from pathlib import Path
 
-__all__ = ["is_frozen", "find_data_dir", "exe_dir"]
+__all__ = ["is_frozen", "find_data_dir", "exe_dir", "package_data_dir"]
 
 ENV_VAR = "RCA_DATA_DIR"
 
@@ -27,6 +32,20 @@ def exe_dir() -> Path | None:
     return Path(sys.executable).resolve().parent
 
 
+def package_data_dir() -> Path:
+    """包内数据目录（`rca/data`，装态即 `site-packages/rca/data`）。"""
+    return Path(__file__).resolve().parent / "data"
+
+
+def _looks_like_data_dir(cand: Path) -> bool:
+    """数据目录的判别特征：必须有 `rules/`（包内与旧布局都有）。
+
+    不用 `knowledge/` 判别：包内只带 `knowledge/MANIFEST.json`（`raw/` 属
+    版权红线数据，不随包），旧布局才带 `knowledge/raw/`。
+    """
+    return (cand / "rules").is_dir()
+
+
 def _candidates() -> list[Path]:
     out: list[Path] = []
     meipass = getattr(sys, "_MEIPASS", None)
@@ -38,7 +57,10 @@ def _candidates() -> list[Path]:
         # PyInstaller 6 onedir：exe目录/_internal/data；5.x 平铺：exe目录/data
         out.append(ed / "_internal" / "data")
         out.append(ed / "data")
-    # 开发树：从本文件上溯找含 data/knowledge 的目录
+    # 包内数据（装态/editable/源码态同一份布局）
+    out.append(package_data_dir())
+    # 开发树旧布局兜底：从本文件上溯找含 data/knowledge 的目录
+    # （DEC1 迁移前的仓库根 `data/`；保留只为人手放的旧树仍能被定位）
     here = Path(__file__).resolve()
     for parent in here.parents:
         cand = parent / "data"
@@ -64,7 +86,7 @@ def find_data_dir(explicit: str | os.PathLike | None = None) -> Path:
         raise FileNotFoundError("%s 指向的目录不存在: %s" % (ENV_VAR, p))
 
     for cand in _candidates():
-        if cand.is_dir():
+        if _looks_like_data_dir(cand):
             return cand
     raise FileNotFoundError("未找到 data/ 目录；可用 --data 或 %s 指定" % ENV_VAR)
 

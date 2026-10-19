@@ -29,6 +29,8 @@ data/**/_private/
 # 验证期草稿产物（放仓库树外或此目录，绝不入仓）
 _scratch/
 _backups/
+# 迭代批次的诊断/路线/执行记录：含本机绝对路径，入仓必被审计器判 HARD
+update/
 
 # Logs / caches
 *.log

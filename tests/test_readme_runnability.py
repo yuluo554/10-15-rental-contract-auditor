@@ -80,8 +80,8 @@ def _run(cmd: str):
     "cmd,expected_rc",
     [
         # check 在演示样例上会检出不符合 → 退出码 1 是既定语义
-        ("python -m rca.cli check --input data/samples/demo-contract-bj.txt --city 北京", 1),
-        ("python -m rca.cli check --input data/samples/demo-contract-bj.txt --city 北京 --json", 1),
+        ("python -m rca.cli check --input src/rca/data/samples/demo-contract-bj.txt --city 北京", 1),
+        ("python -m rca.cli check --input src/rca/data/samples/demo-contract-bj.txt --city 北京 --json", 1),
         ("python -m rca.cli rules --city 北京", 0),
         ("python -m rca.cli bench", 0),
     ],
@@ -97,7 +97,7 @@ def test_readme_commands_run_with_documented_exit_code(cmd, expected_rc):
 def test_readme_report_command_produces_both_formats(tmp_path):
     out_dir = tmp_path / "rep"
     cmd = (
-        "python -m rca.cli report --input data/samples/demo-contract-bj.txt "
+        "python -m rca.cli report --input src/rca/data/samples/demo-contract-bj.txt "
         "--city 北京 --out %s" % out_dir.as_posix()
     )
     proc = _run(cmd)

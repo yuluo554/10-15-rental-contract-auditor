@@ -8,6 +8,11 @@
 用法：
     py -3.12 -X utf8 tools/fetch_sources.py            # 抓取并写入 data/knowledge/raw/
     py -3.12 -X utf8 tools/fetch_sources.py --check     # 重抓比对，输出 SOURCES_FROZEN_OK
+
+数据布局：**快照留在仓库根** `data/knowledge/raw/`（版权红线，不随包、不进 wheel）；
+快照台账 `MANIFEST.json` 随包分发（运行期要用），落在 `src/rca/data/knowledge/`。
+台账里的 `snapshot` 字段仍写仓库根相对路径（`data/knowledge/raw/...`）——
+它是"账本对得上仓库里哪个文件"的锚，与包的布局无关。
 """
 
 from __future__ import annotations
@@ -28,7 +33,7 @@ from rca.stdio import ensure_utf8_stdio  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 RAW_DIR = ROOT / "data" / "knowledge" / "raw"
-MANIFEST = ROOT / "data" / "knowledge" / "MANIFEST.json"
+MANIFEST = ROOT / "src" / "rca" / "data" / "knowledge" / "MANIFEST.json"
 
 SOURCES = [
     {

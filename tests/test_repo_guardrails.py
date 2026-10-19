@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-DATA = ROOT / "data"
+DATA = ROOT / "src" / "rca" / "data"
 
 
 def _run(args, **kw):
@@ -67,10 +67,10 @@ FROZEN_FILES = [
     "data/knowledge/raw/bj-housing-rental.txt",
     "data/knowledge/raw/sh-housing-rental.txt",
     "data/knowledge/raw/bj-deposit-escrow.txt",
-    "data/rules/ruleset-bj.json",
-    "data/rules/ruleset-sh.json",
-    "data/rules/ruleset-cn.json",
-    "data/samples/samples.json",
+    "src/rca/data/rules/ruleset-bj.json",
+    "src/rca/data/rules/ruleset-sh.json",
+    "src/rca/data/rules/ruleset-cn.json",
+    "src/rca/data/samples/samples.json",
 ]
 
 

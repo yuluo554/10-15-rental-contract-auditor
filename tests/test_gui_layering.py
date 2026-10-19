@@ -100,7 +100,7 @@ def test_gui_has_no_policy_literals():
     import re
 
     tokens = set()
-    rules_dir = ROOT / "data" / "rules"
+    rules_dir = ROOT / "src" / "rca" / "data" / "rules"
     for p in sorted(rules_dir.glob("ruleset-*.json")):
         data = json.loads(p.read_text(encoding="utf-8"))
         for r in data.get("rules", []):

@@ -169,3 +169,81 @@ R18/R19（假绿教训）**属于方法论纪律，长期有效**。
 
 > 入库文档内一律写**相对路径**（`plan/HANDOFF-M7.md`），绝对路径只出现在用户侧
 > 启动命令中（否则发布期脱敏扫描必中）。
+
+---
+
+## 8. 发布后修订（2026-10-20）：装态可用性 + 元数据 + 外部对齐
+
+> 本节记录 v0.1.0 之后的一轮修订。**tag `v0.1.0` / Release / 两个 zip 附件未动**；
+> 计划仍属收官态，本节只追加事实，不新开里程碑。
+
+### 8.1 修掉的实质缺陷：非 editable 安装读不到数据
+
+见 `plan/RELEASE-M6.md` §10 的完整记录（缺陷实测、修法、装态验证）。一句话：
+
+> 数据原先在仓库根 `data/`（包外）且无 `package-data` → **wheel 里零数据文件**，
+> `pip install <wheel>` 后 `rca rules` / `rca bench` 直接 exit 2。
+> CI 四个 job 全走 `pip install -e`，故一直没暴露。
+
+**数据布局变更（跨会话必须知道）**：
+
+```
+src/rca/data/rules/ruleset-{cn,bj,sh}.json     ← 随包（原 data/rules/）
+src/rca/data/samples/samples.json              ← 随包（原 data/samples/）
+src/rca/data/samples/demo-contract-bj.txt      ← 随包（README/验收共用样例）
+src/rca/data/knowledge/MANIFEST.json           ← 随包（原 data/knowledge/MANIFEST.json）
+data/knowledge/raw/*.txt                       ← **仍在仓库根，不随包**（版权红线）
+```
+
+`data/README.md` 仍在仓库根（数据纪律文档，非运行期数据）。
+
+**两套集合要分清**（踩过一次）：`rca/packaging.py` 里
+
+- `WHITELIST` = **exe 运行必需**的数据；`build_datas()` 只认它，
+  `verify_package.py` 断言"产物入包集合 == 白名单"（多一个文件就红）。
+- `WHEEL_EXTRA` = wheel 额外带的"装完即跑"素材（目前只有演示样例）。
+  wheel 集合 = `WHITELIST + WHEEL_EXTRA`，`wheel_data_entries()` 给出。
+
+别为了"让装态 README 命令能跑"而把 demo 塞进 `WHITELIST`——那会让既有 exe 产物
+当场被 `verify_package.py` 判红（实测踩到，改回两套集合后 `PACKAGE_VERIFY_OK` 恢复）。
+
+**四条口径跟着变**：
+1. `rca/paths.py` 优先级 = `--data` > `RCA_DATA_DIR` > 冻结态内嵌 > **包内数据** > 开发树旧布局。
+   包内分支排在开发树上溯**之前**（装态不靠上溯）。
+2. `rca/packaging.py` 的 `WHITELIST` 改成**相对包内数据根**的路径；产物内目标目录仍是
+   `data/<子目录>`（`paths.py` 的冻结态分支按 `data/` 这个名字找，不要跟着源码布局改）。
+3. 行内引用同步：`tools/{gen_rulesets,gen_samples,fetch_sources,check_literals,verify_package}.py`、
+   `tests/*`、README 目录树与示例命令、`plan/02` 的数据布局描述。
+4. 台账 `MANIFEST.json` 的 `snapshot` 字段**仍写** `data/knowledge/raw/...`——
+   它是"账本对得上仓库里哪个文件"的锚，与包的布局无关，**不要改**。
+
+### 8.2 新增门禁
+
+| 门禁 | 位置 | 断言 |
+|---|---|---|
+| 装态冒烟（7 项） | `tests/test_install_smoke.py` | 真建 wheel → 全新 venv → 装 → 中立目录跑；断言规则条数、`BENCH_OK`、`check` exit 1 |
+| CI job | `.github/workflows/ci.yml` 的 `install-smoke` | 同链路黑盒跑；断言 wheel 带数据 + 三个命令的退出码 |
+| CI 接线守门 | `tests/test_ci_wiring.py` | 必须有 `install-smoke` job，且其执行行不得用 `pip install -e` |
+
+**负控已验**：删掉 `[tool.setuptools.package-data]` → 装态门禁 5 红 / 2 绿。
+
+**本地复跑装态门禁的坑**：`src/rca.egg-info/SOURCES.txt` 是增量文件。反复构建后它
+会留着上一轮的 `data/` 条目，让"删了 `package-data` 也照样有数据"。fixture 已改为
+构建前清掉 `src/rca.egg-info/` 与 `build/`。**看到"门禁死活不红"先查这个。**
+
+### 8.3 元数据与 CI 外部对齐
+
+| 项 | 改后 |
+|---|---|
+| license | `license = "MIT"`（SPDX 字符串）+ `license-files = ["LICENSE"]`；**删掉** `License :: OSI Approved :: MIT License` classifier |
+| 元数据 warning | `WARNINGS: []`（改前 2 条 `SetuptoolsDeprecationWarning`，setuptools 84.0.0 硬期限 2027-02-18） |
+| 解释器 floor | `requires-python = ">=3.12"`；`gui = ["PySide6>=6.6"]`（**去掉 `<6.7` 上限**）；CI 矩阵收缩为 windows×3.12 + ubuntu×3.12 |
+| actions | `checkout@v4→@v5`、`setup-python@v5→@v6`；新增 `permissions: contents: read` 与 `concurrency` |
+| 发布台账口径 | `plan/DIST-sha256-M6.txt` 的 RELEASE ASSET 行改记**附件名**（`rca-cli-win64.zip（Release 附件）`），不再引用 `_scratch/` 本地路径 |
+
+### 8.4 仍待复验（本轮未做）
+
+- **新 CI job `install-smoke` 与 actions 大版本升级均需推送后才真跑**。本轮不推送，
+  故 `install-smoke` 只有本地等价链路（`tests/test_install_smoke.py`）的证据。
+- 「日志里 Node20 弃用注解为 0 条」需新 run 才能确认。
+- 版本号仍是 `0.1.0`、tag 未动；若要发 `v0.1.1`，属另一个对话。

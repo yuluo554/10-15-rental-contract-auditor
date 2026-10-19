@@ -15,7 +15,7 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-DATA_DIR = ROOT / "data"
+DATA_DIR = SRC / "rca" / "data"
 
 
 def write_text_lf(path, text: str) -> None:
