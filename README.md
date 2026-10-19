@@ -2,11 +2,12 @@
 
 [![CI](https://github.com/yuluo554/10-15-rental-contract-auditor/actions/workflows/ci.yml/badge.svg)](https://github.com/yuluo554/10-15-rental-contract-auditor/actions/workflows/ci.yml)
 
-**状态**：`v0.1.0` 已发布（[Release](https://github.com/yuluo554/10-15-rental-contract-auditor/releases/tag/v0.1.0)）；
-`v0.1.1` 待发布（修掉"非 editable 安装读不到数据"并新增装态门禁）。
+**状态**：`v0.1.1` 已发布（[Release](https://github.com/yuluo554/10-15-rental-contract-auditor/releases/tag/v0.1.1)）。
+本版修掉"非 editable 安装读不到数据"（`pip install` 后 `rca rules` 原先 exit 2），
+并新增装态冒烟门禁。上一个版本 `v0.1.0` 的 tag 与产物保留。
 
 CI：`test`（windows / ubuntu，py3.12）+ `install-smoke`（非 editable 安装冒烟）
-+ `package`（真构建 + 产物级验收）。
++ `package`（真构建 + 产物级验收），四 job 全绿。
 Windows x64 免安装发行包见 Release 附件（CLI / GUI 双入口）。
 
 > **把分散在民法典与城市条例里的数值规则，做成可核验的合同体检；每条判定挂法条原文锚点。**

@@ -241,9 +241,22 @@ data/knowledge/raw/*.txt                       ← **仍在仓库根，不随包
 | actions | `checkout@v4→@v5`、`setup-python@v5→@v6`；新增 `permissions: contents: read` 与 `concurrency` |
 | 发布台账口径 | `plan/DIST-sha256-M6.txt` 的 RELEASE ASSET 行改记**附件名**（`rca-cli-win64.zip（Release 附件）`），不再引用 `_scratch/` 本地路径 |
 
-### 8.4 仍待复验（本轮未做）
+### 8.4 发布收尾（2026-10-20，已实测）
 
-- **新 CI job `install-smoke` 与 actions 大版本升级均需推送后才真跑**。本轮不推送，
-  故 `install-smoke` 只有本地等价链路（`tests/test_install_smoke.py`）的证据。
-- 「日志里 Node20 弃用注解为 0 条」需新 run 才能确认。
-- 版本号仍是 `0.1.0`、tag 未动；若要发 `v0.1.1`，属另一个对话。
+本版已作为 **`v0.1.1`** 发布，留档见 `plan/RELEASE-v0.1.1.md` 与
+`plan/DIST-sha256-v0.1.1.txt`；**`v0.1.0` 的 tag 与 Release 保留不动**。
+
+| 项 | 实测结论 |
+|---|---|
+| `install-smoke` job 首次真跑 | **首轮失败**：三条断言全过（`rules exit=0 / bench exit=0 / check exit=1`），但 pwsh 把最后一条外部命令的退出码继承成 step 退出码。修法：断言全转 `throw`，末尾显式 `exit 0`。次轮 **success** |
+| actions 大版本升级 | run `39299723212` 全绿；**Node20 弃用注解 0 条**（升级生效） |
+| 遗留 notice | ubuntu job 有 1 条 **notice** 级注解：「`ubuntu-latest` 将于 2026-10-19 起迁移 Ubuntu 26」。非 problem、不影响绿；要消掉可钉 `ubuntu-24.04`，但那会失去向前兼容验证 |
+| 版本号 | `pyproject` = `rca/__init__` = `rca --version` = tag = **0.1.1** |
+| 重打包 | PyInstaller 6.22.3 重打双 exe；两产物 `PACKAGE_VERIFY_OK`；两 zip `RELEASE_ZIP_DETERMINISTIC_OK` |
+
+### 8.5 方法论教训（本轮新增）
+
+**"本地等价链路通过"不等于"CI 会绿"**。装态门禁在本地用 bash 风格 `> f 2>&1; echo $?`
+取退出码，而 GitHub runner 上 step 由 `pwsh` 驱动——pwsh 会把**最后一条外部命令**的退出码
+当成 step 的退出码，`check` 的 1（既定语义"检出不符合"）直接让 job 判失败。
+这正是"新增 CI job 必须真跑一次"的价值：**断言对、日志对，退出码仍可能错**。

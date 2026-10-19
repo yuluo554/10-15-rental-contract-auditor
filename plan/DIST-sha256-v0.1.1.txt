@@ -1,0 +1,34 @@
+# 发布产物 sha256 台账（v0.1.1）
+#
+# 生成纪律：本文件的 sha256 行由 hashlib 输出**直接重定向**生成，人只写注释行；
+#           禁止手工转录（转录错位不会被任何测试发现）。
+#           行格式与 v0.1.0 台账（`DIST-sha256-M6.txt`）保持一致，便于逐行比对。
+#
+# 口径（与 plan/RELEASE-M6.md §4 一致）：
+#   - 可复跑的是「同 dist → 同 zip 字节」这一步（ZIP_STORED + 条目 sort + 固定 date_time）。
+#     本版两个 zip 的确定性均已实测：`build_release.py --check` → RELEASE_ZIP_DETERMINISTIC_OK。
+#   - **exe 构建本身不承诺跨机字节一致**（PyInstaller 会嵌入时间戳/路径），
+#     故 exe 的 sha256 只是"本机这次构建"的指纹，不作跨机比对承诺。
+#   - RELEASE ASSET 两行记**附件名**（不是本地 `_scratch/` 路径）：`_scratch/` 在
+#     `.gitignore` 内，换机或清掉该目录后台账里的路径就不存在了；附件名在任何机器上都对得上
+#     GitHub Release。取文件：gh release download v0.1.1 --repo yuluo554/10-15-rental-contract-auditor
+#   - 前两行 exe 的路径同理只是**本机构建产物**的引用（口径见上一条：不作跨机比对）。
+#
+# 构建基线：commit `40610e1`（v0.1.1 收尾提交）的工作树；Windows x64 / Python 3.12.10 /
+#           PyInstaller 6.22.3 / PySide6 6.6.3.1。
+#
+# 与 v0.1.0 的对应关系（**不是同一份字节**，理由要一并看）：
+#   - 数据布局变了（`data/` → `src/rca/data/`），内嵌数据集合与产物内容必然不同；
+#   - 解释器 floor 3.8 → 3.12、`gui` 去掉 `PySide6<6.7` 上限；
+#   - CLI zip 条目数 14（与 v0.1.0 相同形态）；GUI zip 159 条目。
+#   故**不要**拿本台账与 `DIST-sha256-M6.txt` 对账，两者对应不同版本的构建。
+11ae78aaaf4af124c871b9d059e04bf4b6c399b7034049f1accedee1410cd9c0  1784179  dist/rca-cli/rca-cli.exe  # exe(build artifact, this machine only)
+6be0509226616e1f0b8f7cee26e4502140e2937d63997453d13038fc0b406cb0  1791438  dist/rca-gui/rca-gui.exe  # exe(build artifact, this machine only)
+92ea4a616c3ad5768e7d647ca471ee58108c1dba3a6e28fb0034f2d2010590d1  11928681  rca-cli-win64.zip（Release 附件）  # RELEASE ASSET
+84935740801cad0b5fce730117c40ae10cd03c78b7989e23a1dafaeb726554cc  116266995  rca-gui-win64.zip（Release 附件）  # RELEASE ASSET
+
+# 重放（在仓库根跑；路径按上表前两行的本地位置）：
+#   python -c "import hashlib,pathlib; [print(hashlib.sha256(pathlib.Path(f).read_bytes()).hexdigest(), f) for f in ('dist/rca-cli/rca-cli.exe','dist/rca-gui/rca-gui.exe')]"
+# 附件侧（下载件）：
+#   gh release download v0.1.1 --repo yuluo554/10-15-rental-contract-auditor -D dl/
+#   sha256sum dl/*.zip
