@@ -165,6 +165,11 @@ jobs:
           # check 退出码 1 是既定语义（检出不符合），不是失败
           if ($rcCheck -ne 1) { throw "装态 check 退出码 $rcCheck（期望 1）" }
 
+          # pwsh 会把**最后一条外部命令**的退出码当作步骤退出码：上面 check 的 1
+          # 会让整个 step 判失败（实测：三条断言全过，step 仍 exit 1）。
+          # 断言都已转成 throw，这里显式收口为成功。
+          exit 0
+
   package:
     # M5 交付判据：**真构建 + 产物级验收**。只在 windows/3.12 跑一次
     # （PyInstaller ≥6 是打 GUI 的硬前提；spec 的 datas/入口/排除项差异
